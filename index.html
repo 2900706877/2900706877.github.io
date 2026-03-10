@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>去中心化论坛</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #3498db;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .header h1 {
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 16px;
+        }
+        .section {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        .post {
+            background-color: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .post h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .post-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .post-content {
+            margin-bottom: 10px;
+        }
+        .post-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .comment {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin-left: 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .comment-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .section-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .section-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+        .section-item h3 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .section-item p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .section-item small {
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>去中心化论坛</h1>
+            <p>基于区块链和IPFS的去中心化论坛系统</p>
+            <div id="wallet-status">
+                <button id="connect-wallet" class="btn">连接钱包</button>
+                <span id="wallet-address" style="margin-left: 10px;"></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>创建分区</h2>
+            <div class="form-group">
+                <label for="section-name">分区名称</label>
+                <input type="text" id="section-name" placeholder="输入分区名称">
+            </div>
+            <div class="form-group">
+                <label for="section-description">分区描述</label>
+                <textarea id="section-description" placeholder="输入分区描述"></textarea>
+            </div>
+            <button id="create-section" class="btn">创建分区</button>
+        </div>
+
+        <div class="section">
+            <h2>现有分区</h2>
+            <div id="section-list" class="section-list">
+                <!-- 分区列表将通过JS动态生成 -->
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>发布帖子</h2>
+            <div class="form-group">
+                <label for="post-section">选择分区</label>
+                <select id="post-section">
+                    <option value="">请选择分区</option>
+                    <!-- 分区选项将通过JS动态生成 -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="post-title">帖子标题</label>
+                <input type="text" id="post-title" placeholder="输入帖子标题">
+            </div>
+            <div class="form-group">
+                <label for="post-content">帖子内容</label>
+                <textarea id="post-content" placeholder="输入帖子内容"></textarea>
+            </div>
+            <button id="create-post" class="btn">发布帖子</button>
+        </div>
+
+        <div class="section">
+            <h2>帖子列表</h2>
+            <div id="post-list">
+                <!-- 帖子列表将通过JS动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
+    <script src="ipfs.js"></script>
+    <script>
+        // 智能合约ABI
+        const abi = [
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"author","type":"address"},{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"cid","type":"string"}],"name":"PostCreated","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"author","type":"address"},{"indexed":false,"internalType":"string","name":"cid","type":"string"}],"name":"CommentCreated","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"PostLiked","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"CommentLiked","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"name","type":"string"},{"indexed":false,"internalType":"address","name":"creator","type":"address"}],"name":"SectionCreated","type":"event"},
+            {"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_description","type":"string"}],"name":"createSection","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_sectionId","type":"uint256"},{"internalType":"string","name":"_title","type":"string"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"}],"name":"createPost","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"}],"name":"createComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"likePost","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"likeComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPostLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"getCommentLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedPost","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedComment","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"posts","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"comments","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"postId","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"sections","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"description","type":"string"},{"internalType":"address","name":"creator","type":"address"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"postCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"commentCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"sectionCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+        ];
+
+        // 合约地址（部署后需要更新）
+        const contractAddress = "0x8038448289d77A93A3ccb93395471f42305Ce701";
+
+        let web3;
+        let contract;
+        let accounts;
+
+        // 连接钱包
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    web3 = new Web3(window.ethereum);
+                    contract = new web3.eth.Contract(abi, contractAddress);
+                    document.getElementById('wallet-address').textContent = accounts[0];
+                    document.getElementById('connect-wallet').textContent = '已连接';
+                    loadSections();
+                    loadPosts();
+                } catch (error) {
+                    showStatus('连接钱包失败: ' + error.message, 'error');
+                }
+            } else {
+                showStatus('请安装MetaMask钱包', 'error');
+            }
+        }
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status status-${type}`;
+            statusDiv.textContent = message;
+            document.querySelector('.container').insertBefore(statusDiv, document.querySelector('.header').nextSibling);
+            setTimeout(() => {
+                statusDiv.remove();
+            }, 3000);
+        }
+
+        // 加载分区
+        async function loadSections() {
+            if (!contract) return;
+            try {
+                const sectionCounter = await contract.methods.sectionCounter().call();
+                const sectionList = document.getElementById('section-list');
+                const postSectionSelect = document.getElementById('post-section');
+                sectionList.innerHTML = '';
+                postSectionSelect.innerHTML = '<option value="">请选择分区</option>';
+                
+                for (let i = 1; i <= sectionCounter; i++) {
+                    const section = await contract.methods.sections(i).call();
+                    
+                    // 添加到分区列表
+                    const sectionItem = document.createElement('div');
+                    sectionItem.className = 'section-item';
+                    sectionItem.innerHTML = `
+                        <h3>${section.name}</h3>
+                        <p>${section.description}</p>
+                        <small>创建者: ${section.creator}</small>
+                    `;
+                    sectionList.appendChild(sectionItem);
+                    
+                    // 添加到发布帖子的分区选择
+                    const option = document.createElement('option');
+                    option.value = section.id;
+                    option.textContent = section.name;
+                    postSectionSelect.appendChild(option);
+                }
+            } catch (error) {
+                console.error('加载分区失败:', error);
+            }
+        }
+
+        // 加载帖子
+        async function loadPosts() {
+            if (!contract) return;
+            try {
+                const postCounter = await contract.methods.postCounter().call();
+                const postList = document.getElementById('post-list');
+                postList.innerHTML = '';
+                
+                for (let i = 1; i <= postCounter; i++) {
+                    const post = await contract.methods.posts(i).call();
+                    const section = await contract.methods.sections(post.sectionId).call();
+                    
+                    const postItem = document.createElement('div');
+                    postItem.className = 'post';
+                    postItem.innerHTML = `
+                        <h3>${post.title}</h3>
+                        <div class="post-meta">
+                            作者: ${post.author} | 分区: ${section.name} | 时间: ${new Date(post.timestamp * 1000).toLocaleString()}
+                        </div>
+                        <div class="post-content">${post.content}</div>
+                        <div class="post-actions">
+                            <button class="btn btn-secondary" onclick="likePost(${post.id})">点赞 (${post.likes})</button>
+                            <button class="btn btn-secondary" onclick="showCommentForm(${post.id})">评论</button>
+                        </div>
+                        <div id="comment-form-${post.id}" style="display: none; margin-top: 10px;">
+                            <textarea id="comment-content-${post.id}" placeholder="输入评论内容" style="width: 100%; min-height: 80px;"></textarea>
+                            <button class="btn" onclick="createComment(${post.id})">发布评论</button>
+                        </div>
+                        <div id="comments-${post.id}" style="margin-top: 10px;">
+                            <!-- 评论将通过JS动态生成 -->
+                        </div>
+                    `;
+                    postList.appendChild(postItem);
+                    loadComments(post.id);
+                }
+            } catch (error) {
+                console.error('加载帖子失败:', error);
+            }
+        }
+
+        // 加载评论
+        async function loadComments(postId) {
+            if (!contract) return;
+            try {
+                const commentCounter = await contract.methods.commentCounter().call();
+                const commentsDiv = document.getElementById(`comments-${postId}`);
+                commentsDiv.innerHTML = '';
+                
+                for (let i = 1; i <= commentCounter; i++) {
+                    const comment = await contract.methods.comments(i).call();
+                    if (comment.postId == postId) {
+                        const commentItem = document.createElement('div');
+                        commentItem.className = 'comment';
+                        commentItem.innerHTML = `
+                            <div class="comment-meta">
+                                作者: ${comment.author} | 时间: ${new Date(comment.timestamp * 1000).toLocaleString()}
+                            </div>
+                            <div>${comment.content}</div>
+                            <div style="margin-top: 5px;">
+                                <button class="btn btn-secondary" onclick="likeComment(${comment.id})" style="font-size: 12px; padding: 5px 10px;">点赞 (${comment.likes})</button>
+                            </div>
+                        `;
+                        commentsDiv.appendChild(commentItem);
+                    }
+                }
+            } catch (error) {
+                console.error('加载评论失败:', error);
+            }
+        }
+
+        // 显示评论表单
+        function showCommentForm(postId) {
+            const form = document.getElementById(`comment-form-${postId}`);
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 创建分区
+        async function createSection() {
+            if (!contract || !accounts) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            const name = document.getElementById('section-name').value;
+            const description = document.getElementById('section-description').value;
+            if (!name || !description) {
+                showStatus('请填写分区名称和描述', 'error');
+                return;
+            }
+            try {
+                await contract.methods.createSection(name, description).send({ from: accounts[0] });
+                showStatus('分区创建成功', 'success');
+                document.getElementById('section-name').value = '';
+                document.getElementById('section-description').value = '';
+                loadSections();
+            } catch (error) {
+                showStatus('创建分区失败: ' + error.message, 'error');
+            }
+        }
+
+        // 创建帖子
+        async function createPost() {
+            if (!contract || !accounts) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            const sectionId = document.getElementById('post-section').value;
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            if (!sectionId || !title || !content) {
+                showStatus('请填写完整的帖子信息', 'error');
+                return;
+            }
+            try {
+                // 上传内容到IPFS获取CID
+                const cid = await ipfsIntegration.addContent(content);
+                await contract.methods.createPost(sectionId, title, content, cid).send({ from: accounts[0] });
+                showStatus('帖子发布成功', 'success');
+                document.getElementById('post-section').value = '';
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-content').value = '';
+                loadPosts();
+            } catch (error) {
+                showStatus('发布帖子失败: ' + error.message, 'error');
+            }
+        }
+
+        // 创建评论
+        async function createComment(postId) {
+            if (!contract || !accounts) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            const content = document.getElementById(`comment-content-${postId}`).value;
+            if (!content) {
+                showStatus('请填写评论内容', 'error');
+                return;
+            }
+            try {
+                // 上传内容到IPFS获取CID
+                const cid = await ipfsIntegration.addContent(content);
+                await contract.methods.createComment(postId, content, cid).send({ from: accounts[0] });
+                showStatus('评论发布成功', 'success');
+                document.getElementById(`comment-content-${postId}`).value = '';
+                document.getElementById(`comment-form-${postId}`).style.display = 'none';
+                loadComments(postId);
+            } catch (error) {
+                showStatus('发布评论失败: ' + error.message, 'error');
+            }
+        }
+
+        // 点赞帖子
+        async function likePost(postId) {
+            if (!contract || !accounts) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            try {
+                await contract.methods.likePost(postId).send({ from: accounts[0] });
+                showStatus('点赞成功', 'success');
+                loadPosts();
+            } catch (error) {
+                showStatus('点赞失败: ' + error.message, 'error');
+            }
+        }
+
+        // 点赞评论
+        async function likeComment(commentId) {
+            if (!contract || !accounts) {
+                showStatus('请先连接钱包', 'error');
+                return;
+            }
+            try {
+                await contract.methods.likeComment(commentId).send({ from: accounts[0] });
+                showStatus('点赞成功', 'success');
+                // 重新加载评论
+                const comment = await contract.methods.comments(commentId).call();
+                loadComments(comment.postId);
+            } catch (error) {
+                showStatus('点赞失败: ' + error.message, 'error');
+            }
+        }
+
+        // 事件监听
+        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+        document.getElementById('create-section').addEventListener('click', createSection);
+        document.getElementById('create-post').addEventListener('click', createPost);
+
+        // 全局函数
+        window.showCommentForm = showCommentForm;
+        window.createComment = createComment;
+        window.likePost = likePost;
+        window.likeComment = likeComment;
+
+        // 初始化IPFS
+        window.onload = async function() {
+            try {
+                await ipfsIntegration.init();
+                console.log('IPFS初始化完成');
+            } catch (error) {
+                console.error('IPFS初始化失败:', error);
+            }
+        };
+    </script>
+</body>
+</html>
