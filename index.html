@@ -685,6 +685,30 @@
                         imageHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">`;
                     }
                     
+                    // 构建附件下载HTML（如果有附件）
+                    let attachmentHtml = '';
+                    if (post.imageCid && post.imageCid !== '') {
+                        const isImage = post.imageCid.toLowerCase().endsWith('.jpg') || 
+                                       post.imageCid.toLowerCase().endsWith('.jpeg');
+                        const isText = post.imageCid.toLowerCase().endsWith('.txt');
+                        
+                        if (isImage || isText) {
+                            const fileType = isImage ? '图片' : '文本文件';
+                            attachmentHtml = `
+                                <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px;">
+                                    <span style="color: #666; margin-right: 10px;">📎 附件 (${fileType}):</span>
+                                    <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" 
+                                       target="_blank" 
+                                       download
+                                       class="btn btn-secondary" 
+                                       style="font-size: 12px; padding: 5px 15px;">
+                                        下载附件
+                                    </a>
+                                </div>
+                            `;
+                        }
+                    }
+                    
                     postItem.innerHTML = `
                         <h3>${post.title}</h3>
                         <div class="post-meta">
@@ -692,6 +716,7 @@
                         </div>
                         <div class="post-content">${post.content}</div>
                         ${imageHtml}
+                        ${attachmentHtml}
                         <div class="post-actions">
                             <button class="btn btn-secondary" onclick="likePost(${post.id})">点赞 (${post.likes})</button>
                             <button class="btn btn-secondary" onclick="showCommentForm(${post.id})">评论</button>
@@ -896,24 +921,45 @@
 
         // 创建评论
         async function createComment(postId) {
+            console.log('创建评论，postId:', postId, '类型:', typeof postId);
+            
             if (!contract || !accounts) {
                 showStatus('请先连接钱包', 'error');
                 return;
             }
-            const content = document.getElementById(`comment-content-${postId}`).value;
+            
+            const contentElement = document.getElementById(`comment-content-${postId}`);
+            if (!contentElement) {
+                console.error(`找不到评论输入框: comment-content-${postId}`);
+                showStatus('系统错误：找不到评论输入框', 'error');
+                return;
+            }
+            
+            const content = contentElement.value.trim();
             if (!content) {
                 showStatus('请填写评论内容', 'error');
                 return;
             }
+            
             try {
+                showStatus('正在发布评论，请稍候...', 'success');
+                console.log('发布评论内容:', content);
+                
                 // 上传内容到IPFS获取CID
                 const cid = await ipfsIntegration.addContent(content);
-                await contract.methods.createComment(postId, content, cid).send({ from: accounts[0] });
+                console.log('评论内容CID:', cid);
+                
+                // 确保postId是数字
+                const postIdNum = Number(postId);
+                console.log('调用合约createComment，postId:', postIdNum);
+                
+                await contract.methods.createComment(postIdNum, content, cid).send({ from: accounts[0] });
                 showStatus('评论发布成功', 'success');
-                document.getElementById(`comment-content-${postId}`).value = '';
+                contentElement.value = '';
                 document.getElementById(`comment-form-${postId}`).style.display = 'none';
                 loadComments(postId);
             } catch (error) {
+                console.error('发布评论失败:', error);
                 showStatus('发布评论失败: ' + error.message, 'error');
             }
         }
