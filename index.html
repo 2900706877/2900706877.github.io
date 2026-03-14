@@ -679,43 +679,48 @@
                     const postItem = document.createElement('div');
                     postItem.className = 'post';
                     
-                    // 构建图片HTML（如果有图片）
-                    let imageHtml = '';
-                    if (post.imageCid && post.imageCid !== '') {
-                        imageHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">`;
-                    }
-                    
-                    // 构建附件下载HTML（如果有附件）
+                    // 构建附件HTML（如果有附件）
                     let attachmentHtml = '';
                     if (post.imageCid && post.imageCid !== '') {
-                        const isImage = post.imageCid.toLowerCase().endsWith('.jpg') || 
-                                       post.imageCid.toLowerCase().endsWith('.jpeg');
-                        const isText = post.imageCid.toLowerCase().endsWith('.txt');
-                        
-                        if (isImage || isText) {
-                            const fileType = isImage ? '图片' : '文本文件';
-                            attachmentHtml = `
-                                <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px;">
-                                    <span style="color: #666; margin-right: 10px;">📎 附件 (${fileType}):</span>
+                        // 检查文件类型（根据CID判断，这里假设图片CID和图片文件对应）
+                        // 我们尝试同时显示为图片和提供下载链接
+                        attachmentHtml = `
+                            <div class="post-attachment">
+                                <img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" 
+                                     alt="帖子附件" 
+                                     class="post-image" 
+                                     onerror="this.style.display='none'; document.getElementById('txt-preview-${post.id}').style.display='block';"
+                                     onload="document.getElementById('txt-preview-${post.id}').style.display='none';">
+                                <div id="txt-preview-${post.id}" style="display: none; margin-top: 10px;">
+                                    <div style="background-color: #f5f5f5; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap;" 
+                                         id="txt-content-${post.id}">加载中...</div>
+                                    <button class="btn btn-secondary" style="margin-top: 10px;" onclick="loadTextContent('${post.imageCid}', 'txt-content-${post.id}')">刷新内容</button>
+                                </div>
+                                <div style="margin-top: 10px;">
                                     <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" 
                                        target="_blank" 
-                                       download
                                        class="btn btn-secondary" 
-                                       style="font-size: 12px; padding: 5px 15px;">
+                                       style="text-decoration: none; display: inline-block;">
                                         下载附件
                                     </a>
+                                    <button class="btn btn-secondary" onclick="loadTextContent('${post.imageCid}', 'txt-content-${post.id}')" style="margin-left: 10px;">
+                                        预览文本
+                                    </button>
                                 </div>
-                            `;
-                        }
+                            </div>
+                        `;
+                        // 如果是文本文件，自动加载内容
+                        setTimeout(() => {
+                            loadTextContent(post.imageCid, `txt-content-${post.id}`);
+                        }, 100);
                     }
                     
                     postItem.innerHTML = `
                         <h3>${post.title}</h3>
                         <div class="post-meta">
-                            作者: ${post.author} | 分区: ${post.sectionName} | 时间: ${new Date(post.timestamp * 1000).toLocaleString()} | 点赞: ${post.likes}
+                            发布者: ${post.author} | 分区: ${post.sectionName} | 时间: ${new Date(post.timestamp * 1000).toLocaleString()}
                         </div>
                         <div class="post-content">${post.content}</div>
-                        ${imageHtml}
                         ${attachmentHtml}
                         <div class="post-actions">
                             <button class="btn btn-secondary" onclick="likePost(${post.id})">点赞 (${post.likes})</button>
@@ -735,6 +740,38 @@
             } catch (error) {
                 console.error('加载帖子失败:', error);
                 postList.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;">加载帖子失败: ' + error.message + '</p>';
+            }
+        }
+
+        // 加载文本文件内容
+        async function loadTextContent(cid, elementId) {
+            try {
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                element.textContent = '加载中...';
+                
+                const response = await fetch(`https://gateway.pinata.cloud/ipfs/${cid}`);
+                if (!response.ok) {
+                    element.textContent = '加载失败';
+                    return;
+                }
+                
+                // 获取文本内容，确保UTF-8编码
+                const text = await response.text();
+                element.textContent = text;
+                
+                // 显示文本预览区域
+                const previewDiv = document.getElementById(elementId.replace('txt-content', 'txt-preview'));
+                if (previewDiv) {
+                    previewDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('加载文本内容失败:', error);
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = '加载失败: ' + error.message;
+                }
             }
         }
 
@@ -827,7 +864,7 @@
                         commentItem.className = 'comment';
                         commentItem.innerHTML = `
                             <div class="comment-meta">
-                                作者: ${comment.author} | 时间: ${new Date(comment.timestamp * 1000).toLocaleString()}
+                                发布者: ${comment.author} | 时间: ${new Date(comment.timestamp * 1000).toLocaleString()}
                             </div>
                             <div>${comment.content}</div>
                             <div style="margin-top: 5px;">
@@ -921,9 +958,10 @@
 
         // 创建评论
         async function createComment(postId) {
-            console.log('创建评论，postId:', postId, '类型:', typeof postId);
+            console.log(`开始创建评论，帖子ID: ${postId}`);
             
             if (!contract || !accounts) {
+                console.log('合约或账户未初始化');
                 showStatus('请先连接钱包', 'error');
                 return;
             }
@@ -936,28 +974,33 @@
             }
             
             const content = contentElement.value.trim();
+            console.log('评论内容:', content);
+            
             if (!content) {
                 showStatus('请填写评论内容', 'error');
                 return;
             }
             
             try {
-                showStatus('正在发布评论，请稍候...', 'success');
-                console.log('发布评论内容:', content);
+                showStatus('正在上传评论到IPFS，请稍候...', 'success');
                 
                 // 上传内容到IPFS获取CID
                 const cid = await ipfsIntegration.addContent(content);
-                console.log('评论内容CID:', cid);
+                console.log('评论CID:', cid);
                 
-                // 确保postId是数字
-                const postIdNum = Number(postId);
-                console.log('调用合约createComment，postId:', postIdNum);
+                showStatus('正在提交评论到区块链，请确认交易...', 'success');
+                await contract.methods.createComment(postId, content, cid).send({ from: accounts[0] });
                 
-                await contract.methods.createComment(postIdNum, content, cid).send({ from: accounts[0] });
                 showStatus('评论发布成功', 'success');
                 contentElement.value = '';
-                document.getElementById(`comment-form-${postId}`).style.display = 'none';
-                loadComments(postId);
+                
+                const commentForm = document.getElementById(`comment-form-${postId}`);
+                if (commentForm) {
+                    commentForm.style.display = 'none';
+                }
+                
+                // 重新加载评论
+                await loadComments(postId);
             } catch (error) {
                 console.error('发布评论失败:', error);
                 showStatus('发布评论失败: ' + error.message, 'error');
@@ -1010,6 +1053,7 @@
         window.searchPosts = searchPosts;
         window.clearSearch = clearSearch;
         window.previewFile = previewFile;
+        window.loadTextContent = loadTextContent;
 
         // 初始化IPFS和检查钱包连接
         window.onload = async function() {
