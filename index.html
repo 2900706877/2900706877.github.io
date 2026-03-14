@@ -578,9 +578,12 @@
                 console.log('合约未初始化，跳过加载帖子');
                 return;
             }
+            
+            // 在try块外部定义postList，让catch块可以访问
+            const postList = document.getElementById('post-list');
+            
             try {
                 console.log('开始加载帖子...');
-                const postList = document.getElementById('post-list');
                 postList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">正在加载帖子...</p>';
                 
                 // 将sectionId转换为数字类型
@@ -608,8 +611,14 @@
                         const post = await contract.methods.getPost(postId).call();
                         console.log(`帖子 ${postId} 数据:`, post);
                         
+                        // 将BigInt转换为Number
+                        const postSectionId = Number(post.sectionId);
+                        const postTimestamp = Number(post.timestamp);
+                        const postLikes = Number(post.likes);
+                        const postIdNum = Number(post.id);
+                        
                         // 如果指定了分区且帖子不属于该分区，则跳过
-                        if (sectionIdNum != 0 && parseInt(post.sectionId) != sectionIdNum) {
+                        if (sectionIdNum != 0 && postSectionId != sectionIdNum) {
                             continue;
                         }
                         
@@ -625,15 +634,15 @@
                         
                         const section = await contract.methods.sections(post.sectionId).call();
                         posts.push({ 
-                            id: post.id,
+                            id: postIdNum,
                             author: post.author,
                             title: post.title,
                             content: post.content,
                             cid: post.cid,
                             imageCid: post.imageCid,
-                            timestamp: post.timestamp,
-                            sectionId: post.sectionId,
-                            likes: post.likes,
+                            timestamp: postTimestamp,
+                            sectionId: postSectionId,
+                            likes: postLikes,
                             sectionName: section.name 
                         });
                     } catch (postError) {
@@ -642,6 +651,12 @@
                 }
                 
                 console.log(`成功加载 ${posts.length} 个帖子`);
+                
+                // 如果没有帖子，显示提示
+                if (posts.length === 0) {
+                    postList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">暂无帖子</p>';
+                    return;
+                }
                 
                 // 根据选择的排序方式进行排序
                 posts.sort((a, b) => {
@@ -658,12 +673,6 @@
                             return b.timestamp - a.timestamp;
                     }
                 });
-                
-                // 如果没有帖子，显示提示
-                if (posts.length === 0) {
-                    postList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">暂无帖子</p>';
-                    return;
-                }
                 
                 // 渲染排序后的帖子
                 for (const post of posts) {
@@ -752,9 +761,8 @@
                 
                 fileName.textContent = file.name;
                 
-                const reader = new FileReader();
-                
                 if (isImage) {
+                    const reader = new FileReader();
                     reader.onload = function(e) {
                         imagePreview.src = e.target.result;
                         imagePreview.style.display = 'block';
@@ -762,12 +770,15 @@
                     };
                     reader.readAsDataURL(file);
                 } else if (isText) {
-                    reader.onload = function(e) {
-                        textPreview.textContent = e.target.result;
+                    // 使用File.text()方法确保UTF-8编码
+                    file.text().then(text => {
+                        textPreview.textContent = text;
                         textPreview.style.display = 'block';
                         imagePreview.style.display = 'none';
-                    };
-                    reader.readAsText(file);
+                    }).catch(err => {
+                        console.error('读取文本文件失败:', err);
+                        showStatus('读取文本文件失败', 'error');
+                    });
                 }
             } else {
                 fileName.textContent = '';

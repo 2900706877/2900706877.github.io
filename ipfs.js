@@ -114,12 +114,24 @@ class IPFSIntegration {
         }
     }
 
-    // 上传文件到IPFS（用于图片上传）
+    // 上传文件到IPFS（用于图片或文本文件上传）
     async addFile(file) {
         try {
+            // 对于文本文件，确保使用UTF-8编码
+            const isTextFile = file.type === 'text/plain' || file.name.endsWith('.txt');
+            let fileToUpload = file;
+            
+            if (isTextFile) {
+                // 读取文件内容为文本，然后创建一个新的Blob，确保UTF-8编码
+                const text = await file.text();
+                fileToUpload = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                // 保留原始文件名
+                fileToUpload = new File([fileToUpload], file.name, { type: 'text/plain;charset=utf-8' });
+            }
+            
             // 创建FormData对象
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', fileToUpload);
             
             // 尝试使用Pinata API上传文件
             try {
