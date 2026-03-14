@@ -202,12 +202,14 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
             border-top: 4px solid #e74c3c;
+            cursor: pointer;
         }
         .section-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            background-color: #f0f0f0;
         }
         .section-item h3 {
             margin-bottom: 8px;
@@ -276,13 +278,6 @@
         </div>
 
         <div class="section">
-            <h2>现有分区</h2>
-            <div id="section-list" class="section-list">
-                <!-- 分区列表将通过JS动态生成 -->
-            </div>
-        </div>
-
-        <div class="section">
             <h2>发布帖子</h2>
             <div class="form-group">
                 <label for="post-section">选择分区</label>
@@ -303,14 +298,16 @@
         </div>
 
         <div class="section">
-            <h2>帖子列表</h2>
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label for="view-section">按分区查看</label>
-                <select id="view-section" onchange="loadPostsBySection(this.value)">
-                    <option value="0">全部帖子</option>
-                    <!-- 分区选项将通过JS动态生成 -->
-                </select>
+            <h2>现有分区</h2>
+            <p>点击分区查看对应帖子</p>
+            <div id="section-list" class="section-list">
+                <!-- 分区列表将通过JS动态生成 -->
             </div>
+        </div>
+
+        <div class="section">
+            <h2>最新帖子</h2>
+            <p>按发布时间顺序展示所有帖子</p>
             <div id="post-list">
                 <!-- 帖子列表将通过JS动态生成 -->
             </div>
@@ -388,10 +385,8 @@
                 const sectionCounter = await contract.methods.sectionCounter().call();
                 const sectionList = document.getElementById('section-list');
                 const postSectionSelect = document.getElementById('post-section');
-                const viewSectionSelect = document.getElementById('view-section');
                 sectionList.innerHTML = '';
                 postSectionSelect.innerHTML = '<option value="">请选择分区</option>';
-                viewSectionSelect.innerHTML = '<option value="0">全部帖子</option>';
                 
                 for (let i = 1; i <= sectionCounter; i++) {
                     const section = await contract.methods.sections(i).call();
@@ -404,6 +399,15 @@
                         <p>${section.description}</p>
                         <small>创建者: ${section.creator}</small>
                     `;
+                    // 添加点击事件，点击分区查看对应帖子
+                    sectionItem.addEventListener('click', function() {
+                        loadPostsBySection(section.id);
+                        // 高亮当前点击的分区
+                        document.querySelectorAll('.section-item').forEach(item => {
+                            item.style.backgroundColor = '#f9f9f9';
+                        });
+                        this.style.backgroundColor = '#e3f2fd';
+                    });
                     sectionList.appendChild(sectionItem);
                     
                     // 添加到发布帖子的分区选择
@@ -411,12 +415,6 @@
                     option1.value = section.id;
                     option1.textContent = section.name;
                     postSectionSelect.appendChild(option1);
-                    
-                    // 添加到查看帖子的分区选择
-                    const option2 = document.createElement('option');
-                    option2.value = section.id;
-                    option2.textContent = section.name;
-                    viewSectionSelect.appendChild(option2);
                 }
             } catch (error) {
                 console.error('加载分区失败:', error);
@@ -439,6 +437,8 @@
                 // 将sectionId转换为数字类型
                 const sectionIdNum = parseInt(sectionId);
                 
+                // 收集所有帖子
+                const posts = [];
                 for (let i = 1; i <= postCounter; i++) {
                     const post = await contract.methods.posts(i).call();
                     
@@ -448,13 +448,20 @@
                     }
                     
                     const section = await contract.methods.sections(post.sectionId).call();
-                    
+                    posts.push({ ...post, sectionName: section.name });
+                }
+                
+                // 按时间戳降序排序，最新的帖子排在前面
+                posts.sort((a, b) => b.timestamp - a.timestamp);
+                
+                // 渲染排序后的帖子
+                for (const post of posts) {
                     const postItem = document.createElement('div');
                     postItem.className = 'post';
                     postItem.innerHTML = `
                         <h3>${post.title}</h3>
                         <div class="post-meta">
-                            作者: ${post.author} | 分区: ${section.name} | 时间: ${new Date(post.timestamp * 1000).toLocaleString()}
+                            作者: ${post.author} | 分区: ${post.sectionName} | 时间: ${new Date(post.timestamp * 1000).toLocaleString()}
                         </div>
                         <div class="post-content">${post.content}</div>
                         <div class="post-actions">
@@ -557,7 +564,7 @@
                 document.getElementById('post-section').value = '';
                 document.getElementById('post-title').value = '';
                 document.getElementById('post-content').value = '';
-                // 重新加载帖子列表
+                // 重新加载帖子列表，确保新帖子可见
                 await loadPosts();
             } catch (error) {
                 showStatus('发布帖子失败: ' + error.message, 'error');
