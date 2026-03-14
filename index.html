@@ -365,13 +365,14 @@
                 <textarea id="post-content" placeholder="输入帖子内容"></textarea>
             </div>
             <div class="form-group">
-                <label>上传图片（可选，仅支持JPG格式）</label>
+                <label>上传附件（可选，支持JPG图片和TXT文本文件）</label>
                 <div class="file-input-wrapper">
-                    <input type="file" id="post-image" accept=".jpg,.jpeg" onchange="previewImage(this)">
-                    <label for="post-image" class="file-input-label">选择图片</label>
+                    <input type="file" id="post-image" accept=".jpg,.jpeg,.txt" onchange="previewFile(this)">
+                    <label for="post-image" class="file-input-label">选择文件</label>
                     <span class="file-name" id="file-name"></span>
                 </div>
                 <img id="image-preview" class="image-preview" alt="图片预览">
+                <div id="text-preview" style="display: none; margin-top: 10px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; max-height: 200px; overflow-y: auto;"></div>
             </div>
             <button id="create-post" class="btn">发布帖子</button>
         </div>
@@ -425,7 +426,8 @@
             {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"getCommentLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedPost","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedComment","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"posts","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"string","name":"imageCid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPost","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"string","name":"imageCid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"getAllPostIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"comments","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"postId","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"sections","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"description","type":"string"},{"internalType":"address","name":"creator","type":"address"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"postCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -434,7 +436,7 @@
         ];
 
         // 合约地址（部署后需要更新）
-        const contractAddress = "0xf254647974834d4e90c224ac3d4628184a68554e";
+        const contractAddress = "0x567fcab528f9d289f0e5954f59744aed93448871";
 
         let web3;
         let contract;
@@ -572,11 +574,14 @@
 
         // 按分区加载帖子
         async function loadPostsBySection(sectionId) {
-            if (!contract) return;
+            if (!contract) {
+                console.log('合约未初始化，跳过加载帖子');
+                return;
+            }
             try {
-                const postCounter = await contract.methods.postCounter().call();
+                console.log('开始加载帖子...');
                 const postList = document.getElementById('post-list');
-                postList.innerHTML = '';
+                postList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">正在加载帖子...</p>';
                 
                 // 将sectionId转换为数字类型
                 const sectionIdNum = parseInt(sectionId);
@@ -584,29 +589,59 @@
                 // 获取排序方式
                 const sortBy = document.getElementById('sort-by').value;
                 
+                // 获取所有帖子ID
+                const postIds = await contract.methods.getAllPostIds().call();
+                console.log('获取到帖子ID列表:', postIds);
+                
+                if (postIds.length === 0) {
+                    postList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">暂无帖子</p>';
+                    return;
+                }
+                
+                postList.innerHTML = '';
+                
                 // 收集所有帖子
                 const posts = [];
-                for (let i = 1; i <= postCounter; i++) {
-                    const post = await contract.methods.posts(i).call();
-                    
-                    // 如果指定了分区且帖子不属于该分区，则跳过
-                    if (sectionIdNum != 0 && post.sectionId != sectionIdNum) {
-                        continue;
-                    }
-                    
-                    // 如果有关键字搜索，过滤帖子
-                    if (currentSearchKeyword) {
-                        const keyword = currentSearchKeyword.toLowerCase();
-                        const titleMatch = post.title.toLowerCase().includes(keyword);
-                        const contentMatch = post.content.toLowerCase().includes(keyword);
-                        if (!titleMatch && !contentMatch) {
+                for (const postId of postIds) {
+                    try {
+                        console.log(`正在加载帖子 ${postId}...`);
+                        const post = await contract.methods.getPost(postId).call();
+                        console.log(`帖子 ${postId} 数据:`, post);
+                        
+                        // 如果指定了分区且帖子不属于该分区，则跳过
+                        if (sectionIdNum != 0 && parseInt(post.sectionId) != sectionIdNum) {
                             continue;
                         }
+                        
+                        // 如果有关键字搜索，过滤帖子
+                        if (currentSearchKeyword) {
+                            const keyword = currentSearchKeyword.toLowerCase();
+                            const titleMatch = post.title.toLowerCase().includes(keyword);
+                            const contentMatch = post.content.toLowerCase().includes(keyword);
+                            if (!titleMatch && !contentMatch) {
+                                continue;
+                            }
+                        }
+                        
+                        const section = await contract.methods.sections(post.sectionId).call();
+                        posts.push({ 
+                            id: post.id,
+                            author: post.author,
+                            title: post.title,
+                            content: post.content,
+                            cid: post.cid,
+                            imageCid: post.imageCid,
+                            timestamp: post.timestamp,
+                            sectionId: post.sectionId,
+                            likes: post.likes,
+                            sectionName: section.name 
+                        });
+                    } catch (postError) {
+                        console.error(`加载帖子 ${postId} 失败:`, postError);
                     }
-                    
-                    const section = await contract.methods.sections(post.sectionId).call();
-                    posts.push({ ...post, sectionName: section.name });
                 }
+                
+                console.log(`成功加载 ${posts.length} 个帖子`);
                 
                 // 根据选择的排序方式进行排序
                 posts.sort((a, b) => {
@@ -665,7 +700,7 @@
                 }
             } catch (error) {
                 console.error('加载帖子失败:', error);
-                postList.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;">加载帖子失败，请检查网络连接</p>';
+                postList.innerHTML = '<p style="text-align: center; color: #e74c3c; padding: 20px;">加载帖子失败: ' + error.message + '</p>';
             }
         }
 
@@ -683,43 +718,61 @@
             loadPosts();
         }
 
-        // 预览图片
-        function previewImage(input) {
+        // 预览文件（图片或文本）
+        function previewFile(input) {
             const fileName = document.getElementById('file-name');
             const imagePreview = document.getElementById('image-preview');
+            const textPreview = document.getElementById('text-preview');
             
             if (input.files && input.files[0]) {
                 const file = input.files[0];
                 
                 // 检查文件类型
-                if (!file.type.match('image/jpeg') && !file.type.match('image/jpg')) {
-                    showStatus('请选择JPG格式的图片', 'error');
+                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
+                const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
+                
+                if (!isImage && !isText) {
+                    showStatus('请选择JPG图片或TXT文本文件', 'error');
                     input.value = '';
                     fileName.textContent = '';
                     imagePreview.style.display = 'none';
+                    textPreview.style.display = 'none';
                     return;
                 }
                 
                 // 检查文件大小（限制为5MB）
                 if (file.size > 5 * 1024 * 1024) {
-                    showStatus('图片大小不能超过5MB', 'error');
+                    showStatus('文件大小不能超过5MB', 'error');
                     input.value = '';
                     fileName.textContent = '';
                     imagePreview.style.display = 'none';
+                    textPreview.style.display = 'none';
                     return;
                 }
                 
                 fileName.textContent = file.name;
                 
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
+                
+                if (isImage) {
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        textPreview.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                } else if (isText) {
+                    reader.onload = function(e) {
+                        textPreview.textContent = e.target.result;
+                        textPreview.style.display = 'block';
+                        imagePreview.style.display = 'none';
+                    };
+                    reader.readAsText(file);
+                }
             } else {
                 fileName.textContent = '';
                 imagePreview.style.display = 'none';
+                textPreview.style.display = 'none';
             }
         }
 
@@ -821,6 +874,7 @@
                 document.getElementById('post-image').value = '';
                 document.getElementById('file-name').textContent = '';
                 document.getElementById('image-preview').style.display = 'none';
+                document.getElementById('text-preview').style.display = 'none';
                 
                 // 重新加载帖子列表，确保新帖子可见
                 await loadPosts();
@@ -898,7 +952,7 @@
         window.loadPostsBySection = loadPostsBySection;
         window.searchPosts = searchPosts;
         window.clearSearch = clearSearch;
-        window.previewImage = previewImage;
+        window.previewFile = previewFile;
 
         // 初始化IPFS和检查钱包连接
         window.onload = async function() {
