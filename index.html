@@ -709,6 +709,9 @@
                         }
                     }
                     
+                    // 使用data属性存储post id，避免BigInt问题
+                    postItem.dataset.postId = post.id;
+                    
                     postItem.innerHTML = `
                         <h3>${post.title}</h3>
                         <div class="post-meta">
@@ -755,28 +758,38 @@
         async function downloadFile(cid, fileName) {
             try {
                 showStatus('正在准备下载...', 'success');
+                console.log('开始下载文件:', { cid, fileName });
+                
+                // 使用IPFS网关URL
                 const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
                 
-                // 获取文件内容
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('获取文件失败');
-                }
+                // 创建iframe进行下载（避免CORS问题）
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = url;
+                document.body.appendChild(iframe);
                 
-                const blob = await response.blob();
-                
-                // 创建下载链接
-                const downloadUrl = window.URL.createObjectURL(blob);
+                // 同时创建一个隐藏的a标签尝试下载
                 const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = fileName || 'download';
+                link.href = url;
+                link.download = fileName || 'download.txt';
+                link.style.display = 'none';
                 document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
                 
-                // 释放URL对象
-                window.URL.revokeObjectURL(downloadUrl);
-                showStatus('下载已开始', 'success');
+                // 尝试点击下载
+                setTimeout(() => {
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // 清理iframe
+                    setTimeout(() => {
+                        if (iframe.parentNode) {
+                            document.body.removeChild(iframe);
+                        }
+                    }, 5000);
+                }, 100);
+                
+                showStatus('下载已开始，如果未自动下载请检查浏览器设置', 'success');
             } catch (error) {
                 console.error('下载文件失败:', error);
                 showStatus('下载文件失败: ' + error.message, 'error');
@@ -954,16 +967,31 @@
 
         // 创建评论
         async function createComment(postId) {
+            console.log('createComment被调用, postId:', postId, '类型:', typeof postId);
+            
             if (!contract || !accounts) {
+                console.log('错误: 合约或账户未初始化');
                 showStatus('请先连接钱包', 'error');
                 return;
             }
             
             // 将postId转换为Number类型，避免BigInt问题
             const postIdNum = Number(postId);
+            console.log('转换后的postIdNum:', postIdNum);
             
-            const content = document.getElementById(`comment-content-${postIdNum}`).value;
-            if (!content) {
+            const contentElement = document.getElementById(`comment-content-${postIdNum}`);
+            console.log('评论内容元素:', contentElement);
+            
+            if (!contentElement) {
+                console.error('找不到评论内容输入框');
+                showStatus('系统错误: 找不到评论输入框', 'error');
+                return;
+            }
+            
+            const content = contentElement.value;
+            console.log('评论内容:', content);
+            
+            if (!content || content.trim() === '') {
                 showStatus('请填写评论内容', 'error');
                 return;
             }
@@ -973,6 +1001,7 @@
                 
                 // 上传内容到IPFS获取CID
                 const cid = await ipfsIntegration.addContent(content);
+                console.log('评论内容已上传到IPFS, CID:', cid);
                 
                 showStatus('正在提交评论到区块链，请确认交易...', 'success');
                 console.log('发送评论交易:', { postId: postIdNum, content, cid });
@@ -984,7 +1013,7 @@
                 
                 console.log('评论交易结果:', result);
                 showStatus('评论发布成功', 'success');
-                document.getElementById(`comment-content-${postIdNum}`).value = '';
+                contentElement.value = '';
                 document.getElementById(`comment-form-${postIdNum}`).style.display = 'none';
                 loadComments(postIdNum);
             } catch (error) {
