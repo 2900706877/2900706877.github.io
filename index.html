@@ -691,19 +691,19 @@
                             // 显示图片
                             attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">`;
                         } else if (isText) {
-                            // 显示TXT文件下载链接
+                            // 显示TXT文件下载按钮
                             attachmentHtml = `
                                 <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px; border-left: 3px solid #3498db;">
                                     <span style="color: #555;">📄 附件: ${post.fileName}</span>
-                                    <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" download="${post.fileName}" target="_blank" style="margin-left: 10px; color: #3498db; text-decoration: none; font-weight: 600;">下载</a>
+                                    <button onclick="downloadFile('${post.imageCid}', '${post.fileName}')" style="margin-left: 10px; padding: 5px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">下载</button>
                                 </div>
                             `;
                         } else {
-                            // 其他类型文件，显示通用下载链接
+                            // 其他类型文件，显示通用下载按钮
                             attachmentHtml = `
                                 <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px; border-left: 3px solid #3498db;">
                                     <span style="color: #555;">📎 附件: ${post.fileName || '文件'}</span>
-                                    <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" download target="_blank" style="margin-left: 10px; color: #3498db; text-decoration: none; font-weight: 600;">下载</a>
+                                    <button onclick="downloadFile('${post.imageCid}', '${post.fileName || 'download'}')" style="margin-left: 10px; padding: 5px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">下载</button>
                                 </div>
                             `;
                         }
@@ -749,6 +749,38 @@
             document.getElementById('search-input').value = '';
             currentSearchKeyword = '';
             loadPosts();
+        }
+
+        // 下载文件
+        async function downloadFile(cid, fileName) {
+            try {
+                showStatus('正在准备下载...', 'success');
+                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+                
+                // 获取文件内容
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('获取文件失败');
+                }
+                
+                const blob = await response.blob();
+                
+                // 创建下载链接
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = fileName || 'download';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // 释放URL对象
+                window.URL.revokeObjectURL(downloadUrl);
+                showStatus('下载已开始', 'success');
+            } catch (error) {
+                console.error('下载文件失败:', error);
+                showStatus('下载文件失败: ' + error.message, 'error');
+            }
         }
 
         // 预览文件（图片或文本）
@@ -926,20 +958,37 @@
                 showStatus('请先连接钱包', 'error');
                 return;
             }
-            const content = document.getElementById(`comment-content-${postId}`).value;
+            
+            // 将postId转换为Number类型，避免BigInt问题
+            const postIdNum = Number(postId);
+            
+            const content = document.getElementById(`comment-content-${postIdNum}`).value;
             if (!content) {
                 showStatus('请填写评论内容', 'error');
                 return;
             }
+            
             try {
+                showStatus('正在上传评论到IPFS，请稍候...', 'success');
+                
                 // 上传内容到IPFS获取CID
                 const cid = await ipfsIntegration.addContent(content);
-                await contract.methods.createComment(postId, content, cid).send({ from: accounts[0] });
+                
+                showStatus('正在提交评论到区块链，请确认交易...', 'success');
+                console.log('发送评论交易:', { postId: postIdNum, content, cid });
+                
+                const result = await contract.methods.createComment(postIdNum, content, cid).send({ 
+                    from: accounts[0],
+                    gas: 500000 // 设置gas限制
+                });
+                
+                console.log('评论交易结果:', result);
                 showStatus('评论发布成功', 'success');
-                document.getElementById(`comment-content-${postId}`).value = '';
-                document.getElementById(`comment-form-${postId}`).style.display = 'none';
-                loadComments(postId);
+                document.getElementById(`comment-content-${postIdNum}`).value = '';
+                document.getElementById(`comment-form-${postIdNum}`).style.display = 'none';
+                loadComments(postIdNum);
             } catch (error) {
+                console.error('发布评论失败:', error);
                 showStatus('发布评论失败: ' + error.message, 'error');
             }
         }
@@ -990,6 +1039,7 @@
         window.searchPosts = searchPosts;
         window.clearSearch = clearSearch;
         window.previewFile = previewFile;
+        window.downloadFile = downloadFile;
 
         // 初始化IPFS和检查钱包连接
         window.onload = async function() {
