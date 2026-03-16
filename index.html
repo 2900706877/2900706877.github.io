@@ -523,6 +523,8 @@
         async function likePost(postId) {
             if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
             try {
+                const hasLiked = await contract.methods.hasUserLikedPost(postId, accounts[0]).call();
+                if (hasLiked) { showStatus('您已经点赞过该帖子', 'error'); return; }
                 await contract.methods.likePost(postId).send({ from: accounts[0] });
                 showStatus('点赞成功', 'success');
                 loadPosts();
@@ -532,6 +534,8 @@
         async function likeComment(commentId) {
             if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
             try {
+                const hasLiked = await contract.methods.hasUserLikedComment(commentId, accounts[0]).call();
+                if (hasLiked) { showStatus('您已经点赞过该评论', 'error'); return; }
                 await contract.methods.likeComment(commentId).send({ from: accounts[0] });
                 showStatus('点赞成功', 'success');
                 const comment = await contract.methods.comments(commentId).call();
