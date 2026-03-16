@@ -114,17 +114,7 @@
     .file-input-wrapper input[type=file] { display: none; }
     .file-input-label { display: inline-block; background: var(--secondary); color: var(--text-main); padding: 10px 20px; border-radius: var(--radius-md); cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: background 0.2s; border: 1px dashed #9CA3AF; }
     .file-input-label:hover { background: #E5E7EB; border-color: var(--primary); }
-
-    /* 多附件预览样式 */
-    .attachment-preview-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-body); border-radius: var(--radius-md); border: 1px solid var(--border); margin-bottom: 8px; }
-    .attachment-preview-item img { width: 60px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); }
-    .attachment-preview-item .file-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--secondary); border-radius: var(--radius-sm); font-size: 1.5rem; }
-    .attachment-preview-item .file-info { flex: 1; }
-    .attachment-preview-item .file-name { font-weight: 500; font-size: 0.9rem; color: var(--text-main); }
-    .attachment-preview-item .file-size { font-size: 0.8rem; color: var(--text-muted); }
-    .attachment-preview-item .remove-btn { padding: 6px 12px; background: var(--danger); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.8rem; }
-    .attachment-preview-item .remove-btn:hover { background: #DC2626; }
-    .attachment-preview-item .text-content { flex: 1; max-height: 60px; overflow: hidden; font-size: 0.8rem; color: var(--text-muted); background: var(--surface); padding: 8px; border-radius: var(--radius-sm); }
+    #image-preview { max-width: 100%; border-radius: var(--radius-md); margin-top: 12px; }
 
     /* 状态 Toast (不再破坏DOM流) */
     .status { position: fixed; bottom: 24px; right: 24px; padding: 16px 24px; border-radius: var(--radius-md); font-weight: 500; z-index: 9999; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; box-shadow: var(--shadow-lg); max-width: 350px; }
@@ -199,12 +189,13 @@
                     <div class="file-input-wrapper">
                         <label for="post-image" class="file-input-label">
                             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="vertical-align: middle; margin-right: 4px;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                            添加附件 (最多5个，每个≤5MB)
+                            添加图片或TXT附件
                         </label>
-                        <input type="file" id="post-image" accept=".jpg,.jpeg,.txt" multiple onchange="previewFile(this)">
-                        <span id="file-count" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+                        <input type="file" id="post-image" accept=".jpg,.jpeg,.txt" onchange="previewFile(this)">
+                        <span id="file-name" style="font-size: 0.85rem; color: var(--text-muted);"></span>
                     </div>
-                    <div id="attachments-preview" style="margin-top: 12px;"></div>
+                    <img id="image-preview" alt="图片预览" style="display: none;">
+                    <div id="text-preview" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
                 </div>
                 <button id="create-post" class="btn btn-primary">立即发布</button>
             </div>
@@ -519,108 +510,42 @@
             }
         }
     
-        // 存储已选择的附件
-        let selectedAttachments = [];
-        const MAX_ATTACHMENTS = 5;
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-        function formatFileSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        }
-
-        function removeAttachment(index) {
-            selectedAttachments.splice(index, 1);
-            renderAttachmentsPreview();
-            updateFileInput();
-        }
-
-        function updateFileInput() {
-            const fileInput = document.getElementById('post-image');
-            const dataTransfer = new DataTransfer();
-            selectedAttachments.forEach(file => dataTransfer.items.add(file));
-            fileInput.files = dataTransfer.files;
-        }
-
-        function renderAttachmentsPreview() {
-            const previewContainer = document.getElementById('attachments-preview');
-            const fileCount = document.getElementById('file-count');
-            
-            fileCount.textContent = selectedAttachments.length > 0 ? `已选择 ${selectedAttachments.length}/${MAX_ATTACHMENTS} 个附件` : '';
-            previewContainer.innerHTML = '';
-            
-            selectedAttachments.forEach((file, index) => {
-                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
-                const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
-                
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'attachment-preview-item';
-                
-                let previewHtml = '';
-                if (isImage) {
-                    const objectUrl = URL.createObjectURL(file);
-                    previewHtml = `<img src="${objectUrl}" alt="${file.name}">`;
-                } else {
-                    previewHtml = `<div class="file-icon">📄</div>`;
-                }
-                
-                let contentHtml = '';
-                if (isText) {
-                    contentHtml = `<div class="text-content">文本文件预览...</div>`;
-                } else {
-                    contentHtml = `
-                        <div class="file-info">
-                            <div class="file-name">${file.name}</div>
-                            <div class="file-size">${formatFileSize(file.size)}</div>
-                        </div>
-                    `;
-                }
-                
-                itemDiv.innerHTML = `
-                    ${previewHtml}
-                    ${contentHtml}
-                    <button class="remove-btn" onclick="removeAttachment(${index})">删除</button>
-                `;
-                
-                previewContainer.appendChild(itemDiv);
-            });
-        }
-
         function previewFile(input) {
-            if (!input.files || input.files.length === 0) return;
+            const fileName = document.getElementById('file-name');
+            const imagePreview = document.getElementById('image-preview');
+            const textPreview = document.getElementById('text-preview');
             
-            const newFiles = Array.from(input.files);
-            
-            // 检查总数量限制
-            if (selectedAttachments.length + newFiles.length > MAX_ATTACHMENTS) {
-                showStatus(`最多只能添加${MAX_ATTACHMENTS}个附件`, 'error');
-                updateFileInput();
-                return;
-            }
-            
-            // 验证每个文件
-            for (const file of newFiles) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
                 const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
                 const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
                 
                 if (!isImage && !isText) {
-                    showStatus(`"${file.name}" 不是支持的文件格式，请选择JPG图片或TXT文本文件`, 'error');
-                    updateFileInput();
+                    showStatus('请选择JPG图片或TXT文本文件', 'error');
+                    input.value = '';
                     return;
                 }
                 
-                if (file.size > MAX_FILE_SIZE) {
-                    showStatus(`"${file.name}" 大小超过5MB限制`, 'error');
-                    updateFileInput();
+                if (file.size > 5 * 1024 * 1024) {
+                    showStatus('文件大小不能超过5MB', 'error');
+                    input.value = '';
                     return;
                 }
+                
+                fileName.textContent = file.name;
+                
+                if (isImage) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; textPreview.style.display = 'none'; };
+                    reader.readAsDataURL(file);
+                } else if (isText) {
+                    file.text().then(text => { textPreview.textContent = text; textPreview.style.display = 'block'; imagePreview.style.display = 'none'; });
+                }
+            } else {
+                fileName.textContent = '';
+                imagePreview.style.display = 'none';
+                textPreview.style.display = 'none';
             }
-            
-            // 添加新文件到列表
-            selectedAttachments = selectedAttachments.concat(newFiles);
-            renderAttachmentsPreview();
-            updateFileInput();
         }
     
         async function loadComments(postId) {
@@ -682,6 +607,7 @@
             const sectionId = document.getElementById('post-section').value;
             const title = document.getElementById('post-title').value;
             const content = document.getElementById('post-content').value;
+            const imageFile = document.getElementById('post-image').files[0];
             
             if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
             
@@ -689,44 +615,26 @@
                 showStatus('正在上传内容到IPFS...', 'success');
                 const cid = await ipfsIntegration.addContent(content);
                 
-                // 上传多个附件到IPFS
-                const attachments = [];
-                if (selectedAttachments.length > 0) {
-                    showStatus(`正在上传 ${selectedAttachments.length} 个附件到IPFS...`, 'success');
-                    for (const file of selectedAttachments) {
-                        const fileCid = await ipfsIntegration.addFile(file);
-                        attachments.push({
-                            cid: fileCid,
-                            fileName: file.name,
-                            isImage: file.type.match('image/jpeg') || file.type.match('image/jpg')
-                        });
-                    }
+                let imageCid = '', fileName = '';
+                if (imageFile) {
+                    showStatus('正在上传文件到IPFS...', 'success');
+                    imageCid = await ipfsIntegration.addFile(imageFile);
+                    fileName = imageFile.name;
                 }
                 
-                // 将附件信息转换为JSON字符串存储
-                const attachmentsJson = attachments.length > 0 ? JSON.stringify(attachments) : '';
-                
-                // 为了兼容现有合约，使用第一个附件作为主附件
-                const primaryImageCid = attachments.length > 0 ? attachments[0].cid : '';
-                const primaryFileName = attachments.length > 0 ? attachments[0].fileName : '';
-                
                 showStatus('正在提交到区块链...', 'success');
-                await contract.methods.createPost(sectionId, title, content, cid, primaryImageCid, primaryFileName).send({ from: accounts[0] });
+                await contract.methods.createPost(sectionId, title, content, cid, imageCid, fileName).send({ from: accounts[0] });
                 
                 showStatus('帖子发布成功', 'success');
                 document.getElementById('post-section').value = '';
                 document.getElementById('post-title').value = '';
                 document.getElementById('post-content').value = '';
                 document.getElementById('post-image').value = '';
-                
-                // 清空附件列表
-                selectedAttachments = [];
-                renderAttachmentsPreview();
-                
+                document.getElementById('file-name').textContent = '';
+                document.getElementById('image-preview').style.display = 'none';
+                document.getElementById('text-preview').style.display = 'none';
                 await loadPosts();
-            } catch (error) { 
-                showStatus('发布帖子失败: ' + error.message, 'error'); 
-            }
+            } catch (error) { showStatus('发布帖子失败', 'error'); }
         }
     
         async function createComment(postId) {
@@ -787,7 +695,6 @@
         window.clearSearch = clearSearch;
         window.previewFile = previewFile;
         window.downloadFile = downloadFile;
-        window.removeAttachment = removeAttachment;
     
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
