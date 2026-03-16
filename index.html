@@ -710,7 +710,8 @@
                     }
                     
                     // 使用data属性存储post id，避免BigInt问题
-                    postItem.dataset.postId = post.id;
+                    const postIdStr = String(post.id);
+                    postItem.dataset.postId = postIdStr;
                     
                     postItem.innerHTML = `
                         <h3>${post.title}</h3>
@@ -720,18 +721,28 @@
                         <div class="post-content">${post.content}</div>
                         ${attachmentHtml}
                         <div class="post-actions">
-                            <button class="btn btn-secondary" onclick="likePost(${post.id})">点赞 (${post.likes})</button>
-                            <button class="btn btn-secondary" onclick="showCommentForm(${post.id})">评论</button>
+                            <button class="btn btn-secondary" onclick="likePost(${postIdStr})">点赞 (${post.likes})</button>
+                            <button class="btn btn-secondary" onclick="toggleCommentForm('${postIdStr}')">评论</button>
                         </div>
-                        <div id="comment-form-${post.id}" style="display: none; margin-top: 10px;">
-                            <textarea id="comment-content-${post.id}" placeholder="输入评论内容" style="width: 100%; min-height: 80px;"></textarea>
-                            <button class="btn" onclick="createComment(${post.id})">发布评论</button>
+                        <div id="comment-form-${postIdStr}" style="display: none; margin-top: 10px;">
+                            <textarea id="comment-content-${postIdStr}" placeholder="输入评论内容" style="width: 100%; min-height: 80px;"></textarea>
+                            <button class="btn" id="btn-submit-comment-${postIdStr}">发布评论</button>
                         </div>
-                        <div id="comments-${post.id}" style="margin-top: 10px;">
+                        <div id="comments-${postIdStr}" style="margin-top: 10px;">
                             <!-- 评论将通过JS动态生成 -->
                         </div>
                     `;
                     postList.appendChild(postItem);
+                    
+                    // 使用事件监听器绑定评论提交按钮，避免onclick的BigInt问题
+                    const submitBtn = document.getElementById(`btn-submit-comment-${postIdStr}`);
+                    if (submitBtn) {
+                        submitBtn.addEventListener('click', function() {
+                            console.log('评论提交按钮被点击, postId:', postIdStr);
+                            createComment(postIdStr);
+                        });
+                    }
+                    
                     loadComments(post.id);
                 }
             } catch (error) {
@@ -763,33 +774,35 @@
                 // 使用IPFS网关URL
                 const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
                 
-                // 创建iframe进行下载（避免CORS问题）
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = url;
-                document.body.appendChild(iframe);
-                
-                // 同时创建一个隐藏的a标签尝试下载
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = fileName || 'download.txt';
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                
-                // 尝试点击下载
-                setTimeout(() => {
-                    link.click();
-                    document.body.removeChild(link);
+                // 方法1: 尝试使用fetch获取文件内容（处理CORS）
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors',
+                        cache: 'no-cache'
+                    });
                     
-                    // 清理iframe
-                    setTimeout(() => {
-                        if (iframe.parentNode) {
-                            document.body.removeChild(iframe);
-                        }
-                    }, 5000);
-                }, 100);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.download = fileName || 'download.txt';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(downloadUrl);
+                        showStatus('下载已开始', 'success');
+                        return;
+                    }
+                } catch (fetchError) {
+                    console.log('Fetch下载失败，尝试备用方法:', fetchError.message);
+                }
                 
-                showStatus('下载已开始，如果未自动下载请检查浏览器设置', 'success');
+                // 方法2: 使用新窗口打开（用户需要手动保存）
+                showStatus('正在打开文件，请手动保存...', 'success');
+                window.open(url, '_blank');
+                
             } catch (error) {
                 console.error('下载文件失败:', error);
                 showStatus('下载文件失败: ' + error.message, 'error');
@@ -886,10 +899,15 @@
             }
         }
 
-        // 显示评论表单
-        function showCommentForm(postId) {
+        // 显示/隐藏评论表单
+        function toggleCommentForm(postId) {
+            console.log('切换评论表单, postId:', postId);
             const form = document.getElementById(`comment-form-${postId}`);
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form) {
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            } else {
+                console.error('找不到评论表单:', `comment-form-${postId}`);
+            }
         }
 
         // 创建分区
@@ -1060,7 +1078,8 @@
         document.getElementById('create-post').addEventListener('click', createPost);
 
         // 全局函数
-        window.showCommentForm = showCommentForm;
+        window.showCommentForm = toggleCommentForm; // 保持向后兼容
+        window.toggleCommentForm = toggleCommentForm;
         window.createComment = createComment;
         window.likePost = likePost;
         window.likeComment = likeComment;
