@@ -174,15 +174,15 @@
         const contractAddress = "0x142a1ddd434ba273fa9211575ff7a0c872552251";
         let web3, contract, accounts;
         let currentSearchKeyword = '';
-
         let isConnecting = false;
+        let isWalletConnected = false;
 
         async function connectWallet() {
             if (!window.ethereum) {
                 showStatus('请安装MetaMask钱包', 'error');
                 return;
             }
-            if (isConnecting) return;
+            if (isConnecting || isWalletConnected) return;
             isConnecting = true;
             try {
                 accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -199,6 +199,7 @@
                 showStatus('钱包连接成功', 'success');
                 await loadSections();
                 await loadPosts();
+                isWalletConnected = true;
             } catch (error) {
                 showStatus('连接钱包失败: ' + error.message, 'error');
             } finally {
@@ -575,13 +576,16 @@
         };
 
         if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length === 0) {
+            window.ethereum.on('accountsChanged', (newAccounts) => {
+                if (newAccounts.length === 0) {
                     document.getElementById('wallet-address').textContent = '';
                     document.getElementById('connect-wallet').textContent = '连接钱包';
                     contract = null;
+                    isWalletConnected = false;
                     showStatus('钱包已断开连接', 'error');
-                } else { connectWallet(); }
+                } else if (!isWalletConnected) {
+                    connectWallet();
+                }
             });
             window.ethereum.on('chainChanged', () => window.location.reload());
         }
