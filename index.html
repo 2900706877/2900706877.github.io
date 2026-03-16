@@ -929,20 +929,33 @@
                 commentsDiv.innerHTML = '';
                 
                 for (let i = 1; i <= commentCounter; i++) {
-                    const comment = await contract.methods.comments(i).call();
-                    if (comment.postId == postId) {
-                        const commentItem = document.createElement('div');
-                        commentItem.className = 'comment';
-                        commentItem.innerHTML = `
-                            <div class="comment-meta">
-                                发布者: ${comment.author} | 时间: ${new Date(comment.timestamp * 1000).toLocaleString()}
-                            </div>
-                            <div>${comment.content}</div>
-                            <div style="margin-top: 5px;">
-                                <button class="btn btn-secondary" onclick="likeComment(${comment.id})" style="font-size: 12px; padding: 5px 10px;">点赞 (${comment.likes})</button>
-                            </div>
-                        `;
-                        commentsDiv.appendChild(commentItem);
+                    try {
+                        const comment = await contract.methods.comments(i).call();
+                        // 将BigInt转换为Number进行比较
+                        const commentPostId = Number(comment.postId);
+                        const currentPostId = Number(postId);
+                        
+                        if (commentPostId === currentPostId) {
+                            const commentItem = document.createElement('div');
+                            commentItem.className = 'comment';
+                            // 将其他BigInt字段也转换为Number
+                            const commentId = Number(comment.id);
+                            const commentLikes = Number(comment.likes);
+                            const commentTimestamp = Number(comment.timestamp);
+                            
+                            commentItem.innerHTML = `
+                                <div class="comment-meta">
+                                    发布者: ${comment.author} | 时间: ${new Date(commentTimestamp * 1000).toLocaleString()}
+                                </div>
+                                <div>${comment.content}</div>
+                                <div style="margin-top: 5px;">
+                                    <button class="btn btn-secondary" onclick="likeComment(${commentId})" style="font-size: 12px; padding: 5px 10px;">点赞 (${commentLikes})</button>
+                                </div>
+                            `;
+                            commentsDiv.appendChild(commentItem);
+                        }
+                    } catch (commentError) {
+                        console.error(`加载评论 ${i} 失败:`, commentError);
                     }
                 }
             } catch (error) {
