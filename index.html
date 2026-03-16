@@ -695,7 +695,7 @@
                             attachmentHtml = `
                                 <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px; border-left: 3px solid #3498db;">
                                     <span style="color: #555;">📄 附件: ${post.fileName}</span>
-                                    <button onclick="downloadFile('${post.imageCid}', '${post.fileName}')" style="margin-left: 10px; padding: 5px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">下载</button>
+                                    <button onclick="showDownloadOptions('${post.imageCid}', '${post.fileName}')" style="margin-left: 10px; padding: 5px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">下载</button>
                                 </div>
                             `;
                         } else {
@@ -703,7 +703,7 @@
                             attachmentHtml = `
                                 <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px; border-left: 3px solid #3498db;">
                                     <span style="color: #555;">📎 附件: ${post.fileName || '文件'}</span>
-                                    <button onclick="downloadFile('${post.imageCid}', '${post.fileName || 'download'}')" style="margin-left: 10px; padding: 5px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">下载</button>
+                                    <button onclick="showDownloadOptions('${post.imageCid}', '${post.fileName || 'download'}')" style="margin-left: 10px; padding: 5px 15px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;">下载</button>
                                 </div>
                             `;
                         }
@@ -799,13 +799,64 @@
                     console.log('Fetch下载失败，尝试备用方法:', fetchError.message);
                 }
                 
-                // 方法2: 使用新窗口打开（用户需要手动保存）
+                // 方法2: 使用XMLHttpRequest尝试下载（某些情况下可以绕过CORS限制）
+                try {
+                    showStatus('尝试备用下载方式...', 'success');
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', url, true);
+                    xhr.responseType = 'blob';
+                    
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            const blob = xhr.response;
+                            const downloadUrl = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = downloadUrl;
+                            link.download = fileName || 'download.txt';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(downloadUrl);
+                            showStatus('下载已开始', 'success');
+                        } else {
+                            throw new Error('HTTP ' + xhr.status);
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        console.log('XMLHttpRequest下载失败，使用最后备用方法');
+                        // 方法3: 使用新窗口打开（用户需要手动保存）
+                        showStatus('正在打开文件，请手动保存...', 'success');
+                        window.open(url, '_blank');
+                    };
+                    
+                    xhr.send();
+                    return;
+                } catch (xhrError) {
+                    console.log('XMLHttpRequest下载失败:', xhrError.message);
+                }
+                
+                // 方法3: 使用新窗口打开（用户需要手动保存）
                 showStatus('正在打开文件，请手动保存...', 'success');
                 window.open(url, '_blank');
                 
             } catch (error) {
                 console.error('下载文件失败:', error);
                 showStatus('下载文件失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 显示下载选项对话框
+        function showDownloadOptions(cid, fileName) {
+            const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+            const choice = confirm(`下载文件: ${fileName || '未命名文件'}\n\n点击"确定"尝试自动下载\n点击"取消"在新窗口打开文件（手动保存）`);
+            
+            if (choice) {
+                // 尝试自动下载
+                downloadFile(cid, fileName);
+            } else {
+                // 在新窗口打开
+                window.open(url, '_blank');
             }
         }
 
@@ -1088,6 +1139,7 @@
         window.clearSearch = clearSearch;
         window.previewFile = previewFile;
         window.downloadFile = downloadFile;
+        window.showDownloadOptions = showDownloadOptions;
 
         // 初始化IPFS和检查钱包连接
         window.onload = async function() {
