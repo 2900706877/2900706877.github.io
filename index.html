@@ -418,7 +418,7 @@
             {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"CommentLiked","type":"event"},
             {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"name","type":"string"},{"indexed":false,"internalType":"address","name":"creator","type":"address"}],"name":"SectionCreated","type":"event"},
             {"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_description","type":"string"}],"name":"createSection","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_sectionId","type":"uint256"},{"internalType":"string","name":"_title","type":"string"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"},{"internalType":"string","name":"_imageCid","type":"string"}],"name":"createPost","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_sectionId","type":"uint256"},{"internalType":"string","name":"_title","type":"string"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"},{"internalType":"string","name":"_imageCid","type":"string"},{"internalType":"string","name":"_fileName","type":"string"}],"name":"createPost","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"}],"name":"createComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"likePost","outputs":[],"stateMutability":"nonpayable","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"likeComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -426,7 +426,7 @@
             {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"getCommentLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedPost","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedComment","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPost","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"string","name":"imageCid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPost","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"string","name":"imageCid","type":"string"},{"internalType":"string","name":"fileName","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[],"name":"getAllPostIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"comments","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"postId","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"sections","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"description","type":"string"},{"internalType":"address","name":"creator","type":"address"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -640,6 +640,7 @@
                             content: post.content,
                             cid: post.cid,
                             imageCid: post.imageCid,
+                            fileName: post.fileName,
                             timestamp: postTimestamp,
                             sectionId: postSectionId,
                             likes: postLikes,
@@ -682,34 +683,31 @@
                     // 构建附件HTML（如果有附件）
                     let attachmentHtml = '';
                     if (post.imageCid && post.imageCid !== '') {
-                        // 判断是图片还是文本文件（通过文件扩展名或CID判断）
-                        const isImage = post.imageCid.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/);
-                        const isText = post.imageCid.toLowerCase().match(/\.(txt|md|json|csv)$/);
+                        // 判断是图片还是文本文件
+                        const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                        const isText = post.fileName && post.fileName.endsWith('.txt');
                         
-                        if (isImage || (!isText)) {
+                        if (isImage) {
                             // 显示图片
-                            attachmentHtml = `
-                                <div style="margin: 15px 0;">
-                                    <img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">
-                                </div>`;
+                            attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">`;
                         } else if (isText) {
                             // 显示TXT文件下载链接
-                            const fileName = post.imageCid.split('/').pop() || '附件.txt';
                             attachmentHtml = `
                                 <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px; border-left: 3px solid #3498db;">
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <span style="font-size: 24px;">📄</span>
-                                        <div>
-                                            <div style="font-weight: 600; color: #2c3e50;">${fileName}</div>
-                                            <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" target="_blank" download style="color: #3498db; text-decoration: none; font-size: 0.9rem;">下载文件</a>
-                                        </div>
-                                    </div>
-                                </div>`;
+                                    <span style="color: #555;">📄 附件: ${post.fileName}</span>
+                                    <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" download="${post.fileName}" target="_blank" style="margin-left: 10px; color: #3498db; text-decoration: none; font-weight: 600;">下载</a>
+                                </div>
+                            `;
+                        } else {
+                            // 其他类型文件，显示通用下载链接
+                            attachmentHtml = `
+                                <div style="margin: 15px 0; padding: 10px; background-color: #f0f4f8; border-radius: 8px; border-left: 3px solid #3498db;">
+                                    <span style="color: #555;">📎 附件: ${post.fileName || '文件'}</span>
+                                    <a href="https://gateway.pinata.cloud/ipfs/${post.imageCid}" download target="_blank" style="margin-left: 10px; color: #3498db; text-decoration: none; font-weight: 600;">下载</a>
+                                </div>
+                            `;
                         }
                     }
-                    
-                    // 确保post.id是字符串，用于DOM ID
-                    const postIdStr = String(post.id);
                     
                     postItem.innerHTML = `
                         <h3>${post.title}</h3>
@@ -720,13 +718,13 @@
                         ${attachmentHtml}
                         <div class="post-actions">
                             <button class="btn btn-secondary" onclick="likePost(${post.id})">点赞 (${post.likes})</button>
-                            <button class="btn btn-secondary" onclick="showCommentForm('${postIdStr}')">评论</button>
+                            <button class="btn btn-secondary" onclick="showCommentForm(${post.id})">评论</button>
                         </div>
-                        <div id="comment-form-${postIdStr}" style="display: none; margin-top: 10px;">
-                            <textarea id="comment-content-${postIdStr}" placeholder="输入评论内容" style="width: 100%; min-height: 80px;"></textarea>
+                        <div id="comment-form-${post.id}" style="display: none; margin-top: 10px;">
+                            <textarea id="comment-content-${post.id}" placeholder="输入评论内容" style="width: 100%; min-height: 80px;"></textarea>
                             <button class="btn" onclick="createComment(${post.id})">发布评论</button>
                         </div>
-                        <div id="comments-${postIdStr}" style="margin-top: 10px;">
+                        <div id="comments-${post.id}" style="margin-top: 10px;">
                             <!-- 评论将通过JS动态生成 -->
                         </div>
                     `;
@@ -845,25 +843,8 @@
 
         // 显示评论表单
         function showCommentForm(postId) {
-            console.log(`显示/隐藏评论表单，帖子ID: ${postId}`);
-            
             const form = document.getElementById(`comment-form-${postId}`);
-            if (!form) {
-                console.error(`找不到评论表单: comment-form-${postId}`);
-                showStatus('系统错误：找不到评论表单', 'error');
-                return;
-            }
-            
-            const isHidden = form.style.display === 'none';
-            form.style.display = isHidden ? 'block' : 'none';
-            
-            // 如果显示表单，自动聚焦到输入框
-            if (isHidden) {
-                const textarea = document.getElementById(`comment-content-${postId}`);
-                if (textarea) {
-                    setTimeout(() => textarea.focus(), 100);
-                }
-            }
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
         }
 
         // 创建分区
@@ -911,15 +892,17 @@
                 // 上传内容到IPFS获取CID
                 const cid = await ipfsIntegration.addContent(content);
                 
-                // 上传图片到IPFS（如果有）
+                // 上传文件到IPFS（如果有）
                 let imageCid = '';
+                let fileName = '';
                 if (imageFile) {
-                    showStatus('正在上传图片到IPFS，请稍候...', 'success');
+                    showStatus('正在上传文件到IPFS，请稍候...', 'success');
                     imageCid = await ipfsIntegration.addFile(imageFile);
+                    fileName = imageFile.name;
                 }
                 
                 showStatus('正在提交到区块链，请确认交易...', 'success');
-                await contract.methods.createPost(sectionId, title, content, cid, imageCid).send({ from: accounts[0] });
+                await contract.methods.createPost(sectionId, title, content, cid, imageCid, fileName).send({ from: accounts[0] });
                 
                 showStatus('帖子发布成功', 'success');
                 document.getElementById('post-section').value = '';
@@ -939,50 +922,24 @@
 
         // 创建评论
         async function createComment(postId) {
-            console.log(`尝试创建评论，帖子ID: ${postId}`);
-            
             if (!contract || !accounts) {
                 showStatus('请先连接钱包', 'error');
                 return;
             }
-            
-            // 确保postId是字符串，用于DOM操作
-            const postIdStr = String(postId);
-            const contentElement = document.getElementById(`comment-content-${postIdStr}`);
-            
-            if (!contentElement) {
-                console.error(`找不到评论输入框: comment-content-${postIdStr}`);
-                showStatus('系统错误：找不到评论输入框', 'error');
-                return;
-            }
-            
-            const content = contentElement.value.trim();
+            const content = document.getElementById(`comment-content-${postId}`).value;
             if (!content) {
                 showStatus('请填写评论内容', 'error');
                 return;
             }
-            
             try {
-                showStatus('正在上传评论到IPFS...', 'success');
-                
                 // 上传内容到IPFS获取CID
                 const cid = await ipfsIntegration.addContent(content);
-                console.log('评论内容CID:', cid);
-                
-                showStatus('正在提交评论到区块链...', 'success');
                 await contract.methods.createComment(postId, content, cid).send({ from: accounts[0] });
-                
                 showStatus('评论发布成功', 'success');
-                contentElement.value = '';
-                
-                const formElement = document.getElementById(`comment-form-${postIdStr}`);
-                if (formElement) {
-                    formElement.style.display = 'none';
-                }
-                
+                document.getElementById(`comment-content-${postId}`).value = '';
+                document.getElementById(`comment-form-${postId}`).style.display = 'none';
                 loadComments(postId);
             } catch (error) {
-                console.error('发布评论失败:', error);
                 showStatus('发布评论失败: ' + error.message, 'error');
             }
         }
