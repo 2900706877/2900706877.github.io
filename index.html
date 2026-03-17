@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>畅所欲言 - Web3去中心化论坛 (Rollup版)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:,"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS 保持不变 */
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
@@ -205,6 +204,15 @@
                 <div class="search-box">
                     <input type="text" id="search-input" class="modern-input" placeholder="搜索帖子标题或内容...">
                     <button class="btn btn-primary" onclick="renderApp()">搜索</button>
+                    <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+                </div>
+                <div class="sort-controls">
+                    <select id="sort-by" onchange="renderApp()">
+                        <option value="time-desc">最新发布优先</option>
+                        <option value="time-asc">最早发布优先</option>
+                        <option value="likes-desc">点赞数最多优先</option>
+                        <option value="likes-asc">点赞数最少优先</option>
+                    </select>
                 </div>
             </div>
     
@@ -217,7 +225,7 @@
     <script src="ipfs.js"></script>
     <script>
         // 【重要】记得确认这里是你新部署的 Rollup 合约地址
-        const contractAddress = "0xbAc5371C93d6fBE8385D34bd08e78c174C644472"; 
+        const contractAddress = "0xYourNewContractAddressHere"; 
         
         const abi = [
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"packetId","type":"uint256"},{"indexed":false,"internalType":"string","name":"cid","type":"string"},{"indexed":false,"internalType":"bytes32","name":"rootHash","type":"bytes32"},{"indexed":false,"internalType":"address","name":"relayer","type":"address"},{"indexed":false,"internalType":"uint256","name":"operationCount","type":"uint256"}],"name":"BatchSubmitted","type":"event"},
@@ -229,9 +237,10 @@
     
         let web3, contract, accounts;
         
-        // 核心状态机
+        // 核心状态机与新增的过滤状态
         let appState = { sections: [], posts: [], comments: [], likes: {} };
         let mempool = []; 
+        let currentSectionFilter = ''; // 用于记录当前选中的分区ID
 
         function generateId() { return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 10000); }
         function shortenAddress(address) { return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : ''; }
@@ -265,9 +274,9 @@
             }, 3000);
         }
 
-        // --- 2. 状态重构（已解决神秘消失的核心逻辑） ---
+        // --- 2. 状态重构 ---
         function applyOperationToState(state, op) {
-            if (!op || !op.type || !op.data) return; // 容错
+            if (!op || !op.type || !op.data) return; 
             if (op.type === 'create_section') {
                 if (!state.sections.find(s => s.id === op.data.id)) state.sections.push(op.data);
             } else if (op.type === 'create_post') {
@@ -285,7 +294,6 @@
             if (!contract) return;
             showStatus('正在从区块链与 IPFS 同步数据...', 'success');
             
-            // 使用临时状态，防止同步期间清空页面
             let newState = { sections: [], posts: [], comments: [], likes: {} };
             
             try {
@@ -297,24 +305,13 @@
 
                     try {
                         const contentStr = await ipfsIntegration.getContent(cid);
-                        
-                        // 【核心修复 1】：拦截 IPFS 未同步时的 Mock 数据，防止破坏 JSON.parse
-                        if (contentStr.startsWith('Mock content')) {
-                            console.warn(`CID ${cid} 尚未在 IPFS 网络中就绪，请稍后刷新重试。`);
-                            continue;
-                        }
+                        if (contentStr.startsWith('Mock content')) continue;
 
                         let parsed;
                         try {
                             parsed = JSON.parse(contentStr);
-                            // 【核心修复 2】：解决 Pinata API 造成的“双重字符串化”问题
-                            if (typeof parsed === 'string') {
-                                parsed = JSON.parse(parsed);
-                            }
-                        } catch (e) {
-                            console.warn(`解析 CID ${cid} JSON 数据失败:`, e);
-                            continue;
-                        }
+                            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                        } catch (e) { continue; }
                         
                         const operations = parsed.data || [];
                         for (const op of operations) {
@@ -337,19 +334,16 @@
         // --- 3. 业务操作 ---
         async function signAndAddToMempool(type, data) {
             if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
-            
             const message = JSON.stringify(data);
             showStatus('请在钱包中签名确认 (免费)...', 'success');
             
             try {
                 const signature = await web3.eth.personal.sign(message, accounts[0], '');
-                
                 mempool.push({ type, data, signature });
                 
                 document.getElementById('mempool-count').textContent = mempool.length;
                 showStatus('操作已记录，等待打包上链', 'success');
                 renderApp(); 
-                
             } catch (error) {
                 showStatus('用户取消了签名', 'error');
                 throw error;
@@ -383,11 +377,7 @@
                 fileName = imageFile.name;
             }
 
-            const data = {
-                id: generateId(), author: accounts[0], title, content, 
-                timestamp: Date.now(), sectionId, imageCid, fileName
-            };
-            
+            const data = { id: generateId(), author: accounts[0], title, content, timestamp: Date.now(), sectionId, imageCid, fileName };
             await signAndAddToMempool('create_post', data);
             
             document.getElementById('post-title').value = '';
@@ -397,17 +387,16 @@
             document.getElementById('image-preview').style.display = 'none';
         }
 
-        async function createComment(postId) {
+        window.createComment = async function(postId) {
             const contentBox = document.getElementById(`comment-content-${postId}`);
             const content = contentBox.value;
             if (!content) { showStatus('评论不能为空', 'error'); return; }
 
             const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
             await signAndAddToMempool('create_comment', data);
-            contentBox.value = '';
         }
 
-        async function likeEntity(targetId) {
+        window.likeEntity = async function(targetId) {
             const data = { targetId, user: accounts[0], timestamp: Date.now() };
             await signAndAddToMempool('like', data);
         }
@@ -422,9 +411,6 @@
                 const batchData = [...mempool]; 
                 
                 const packet = await ipfsIntegration.createDataPacket(batchData);
-                
-                // 【核心修复 3】：手动将数据结构写入本地内存缓存
-                // 防止打包完毕后，页面立即调用 syncStateFromChain，遭遇 Pinata 延迟而导致数据消失
                 const packetObj = { timestamp: Date.now(), data: batchData, version: '1.0' };
                 ipfsIntegration.lightStorage.store(packet.cid, JSON.stringify(packetObj));
 
@@ -442,34 +428,90 @@
             }
         }
 
-        // --- 5. 前端视图渲染 ---
+        // --- 5. 辅助功能 (评论显隐、清理搜索、过滤分区) ---
+        window.toggleCommentForm = function(postId) {
+            const form = document.getElementById(`comment-form-${postId}`);
+            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.filterBySection = function(sectionId) {
+            currentSectionFilter = sectionId;
+            renderApp();
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('search-input').value = '';
+            renderApp();
+        };
+
+        // --- 6. 前端视图渲染 ---
         function renderApp() {
             let currentState = JSON.parse(JSON.stringify(appState)); 
             for (const op of mempool) { applyOperationToState(currentState, op); }
 
+            // 渲染左侧分区 (包含“全部分区”选项)
             const sectionList = document.getElementById('section-list');
             const postSectionSelect = document.getElementById('post-section');
             sectionList.innerHTML = '';
             postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
             
+            const isAllActive = currentSectionFilter === '' ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
+            sectionList.innerHTML += `
+                <div class="section-item" ${isAllActive} onclick="filterBySection('')">
+                    <div class="section-icon">🌐</div>
+                    <div class="section-details"><h4>全部分区</h4><p>查看所有星球的电波</p></div>
+                </div>`;
+
             currentState.sections.forEach(sec => {
+                const isActive = currentSectionFilter === sec.id ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
                 sectionList.innerHTML += `
-                    <div class="section-item">
+                    <div class="section-item" ${isActive} onclick="filterBySection('${sec.id}')">
                         <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
                         <div class="section-details"><h4>${sec.name}</h4><p>${sec.description}</p></div>
                     </div>`;
                 postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
             });
 
+            // 获取过滤和排序设置
+            let filteredPosts = currentState.posts;
+
+            // 1. 执行分区过滤
+            if (currentSectionFilter !== '') {
+                filteredPosts = filteredPosts.filter(p => p.sectionId === currentSectionFilter);
+            }
+
+            // 2. 执行关键词过滤
+            const keyword = document.getElementById('search-input').value.toLowerCase().trim();
+            if (keyword) {
+                filteredPosts = filteredPosts.filter(post => 
+                    post.title.toLowerCase().includes(keyword) || post.content.toLowerCase().includes(keyword)
+                );
+            }
+
+            // 3. 执行排序
+            const sortBy = document.getElementById('sort-by').value;
+            filteredPosts.sort((a, b) => {
+                const likesA = currentState.likes[a.id] ? currentState.likes[a.id].length : 0;
+                const likesB = currentState.likes[b.id] ? currentState.likes[b.id].length : 0;
+                switch (sortBy) {
+                    case 'time-desc': return b.timestamp - a.timestamp;
+                    case 'time-asc': return a.timestamp - b.timestamp;
+                    case 'likes-desc': return likesB - likesA;
+                    case 'likes-asc': return likesA - likesB;
+                    default: return b.timestamp - a.timestamp;
+                }
+            });
+
+            // 渲染帖子列表
             const postList = document.getElementById('post-list');
             postList.innerHTML = '';
-            const keyword = document.getElementById('search-input').value.toLowerCase();
             
-            const sortedPosts = currentState.posts.sort((a, b) => b.timestamp - a.timestamp);
-            
-            sortedPosts.forEach(post => {
-                if (keyword && !post.title.toLowerCase().includes(keyword) && !post.content.toLowerCase().includes(keyword)) return;
-                
+            if (filteredPosts.length === 0) {
+                postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">这片宇宙空空如也，发布第一条动态吧</div>';
+                return;
+            }
+
+            filteredPosts.forEach(post => {
                 const section = currentState.sections.find(s => s.id === post.sectionId);
                 const sectionName = section ? section.name : '未知分区';
                 const likesCount = currentState.likes[post.id] ? currentState.likes[post.id].length : 0;
@@ -507,7 +549,7 @@
                                 <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                 <span>点赞 (${likesCount})</span>
                             </button>
-                            <button class="action-btn" onclick="document.getElementById('comment-form-${post.id}').style.display='block'">
+                            <button class="action-btn" onclick="toggleCommentForm('${post.id}')">
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                 <span>评论</span>
                             </button>
@@ -565,7 +607,6 @@
 
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
-            // 如果钱包已授权，尝试自动连接
             if (window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -579,3 +620,8 @@
     </script>
 </body>
 </html>
+
+
+
+
+
