@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>畅所欲言 - Web3去中心化论坛 (Rollup版)</title>
+    <title>朱晓展毕业设计</title>
     <link rel="icon" href="data:,"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -120,7 +120,7 @@
         <div class="nav-container">
             <div class="brand">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-                畅所欲言 (Rollup版)
+                畅所欲言论坛
             </div>
             <div id="wallet-status">
                 <span id="wallet-address"></span>
@@ -158,12 +158,11 @@
         <main class="main-feed">
             <div class="card" style="border: 2px dashed var(--primary); background: rgba(79, 70, 229, 0.05);">
                 <div class="card-header" style="color: var(--primary); border-bottom: 1px dashed rgba(79, 70, 229, 0.3);">
-                    ⚙️ 节点 Relayer 打包控制台
+                    ⚙️ 打包控制台
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <p>本地内存池待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
-                        <p style="font-size: 0.85rem; color: var(--text-muted);">实际项目中，此操作由后端服务器定时自动触发执行上链</p>
+                        <p>待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
                     </div>
                     <button id="batch-submit-btn" class="btn btn-primary" onclick="submitBatchToChain()">执行打包上链 (需付Gas)</button>
                 </div>
@@ -172,7 +171,7 @@
             <div class="card">
                 <div class="card-header">
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    发布动态 (无Gas签名)
+                    发布动态
                 </div>
                 <div class="form-group">
                     <select id="post-section" class="modern-input">
@@ -197,7 +196,7 @@
                     <img id="image-preview" alt="图片预览" style="display: none;">
                     <div id="text-preview" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
                 </div>
-                <button onclick="createPost()" class="btn btn-primary">签名并发布 (零Gas费)</button>
+                <button onclick="createPost()" class="btn btn-primary">签名并发布</button>
             </div>
     
             <div class="feed-tools">
@@ -224,7 +223,7 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
     <script src="ipfs.js"></script>
     <script>
-        // 【重要】记得确认这里是你新部署的 Rollup 合约地址
+        //每次部署时记得更新
         const contractAddress = "0xbAc5371C93d6fBE8385D34bd08e78c174C644472"; 
         
         const abi = [
