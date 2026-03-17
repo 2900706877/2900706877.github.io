@@ -331,16 +331,34 @@
         // ======================= 轻节点同步逻辑 =======================
         async function syncLightNodeState(force = false) {
             if(!contract) return;
+            
+            if (force) {
+                showStatus('开始强制同步，正在从链上和 IPFS 重建全局状态...', 'info');
+                forumState = { sections: [], posts: [], comments: [], likes: {} };
+            } else {
+                showStatus('正在检查增量同步数据...', 'info');
+            }
+
             let lastSynced = force ? 0 : (parseInt(localStorage.getItem('lastSyncedPacket')) || 0);
-            if (force) forumState = { sections: [], posts: [], comments: [], likes: {} };
 
             try {
                 const packetCounter = parseInt(await contract.methods.packetCounter().call());
+                
                 for (let i = lastSynced + 1; i <= packetCounter; i++) {
                     const packet = await contract.methods.dataPackets(i).call();
+                    
+                    // 核心修复：每次下载前节流等待 600 毫秒，防止触发 IPFS 网关 429 报错
+                    if (i > lastSynced + 1) {
+                        await new Promise(resolve => setTimeout(resolve, 600)); 
+                    }
+
                     const batchJsonStr = await ipfsIntegration.getContent(packet.cid);
                     const operations = JSON.parse(batchJsonStr);
-                    if(operations.error) continue; // 跳过网络错误导致的数据包
+                    
+                    if(operations.error) {
+                        console.warn(`跳过损坏或无法下载的数据包 CID: ${packet.cid}`);
+                        continue; 
+                    }
                     
                     for(let op of operations) {
                         const data = op.data;
@@ -360,7 +378,10 @@
                 renderSections();
                 renderPosts();
                 if(packetCounter > lastSynced) showStatus('状态同步完成！', 'success');
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e); 
+                showStatus('同步中断，请检查网络或稍后再试', 'error');
+            }
         }
 
         // ======================= 渲染逻辑 =======================
