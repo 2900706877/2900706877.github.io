@@ -387,7 +387,7 @@
             document.getElementById('image-preview').style.display = 'none';
         }
 
-        window.createComment = async function(postId) {
+        async function createComment(postId) {
             try {
                 const contentBox = document.getElementById(`comment-content-${postId}`);
                 if (!contentBox) { showStatus('系统错误：找不到评论输入框', 'error'); return; }
@@ -447,6 +447,8 @@
             const form = document.getElementById(`comment-form-${postId}`);
             if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
         };
+
+        window.createComment = createComment;
 
         window.filterBySection = function(sectionId) {
             currentSectionFilter = sectionId;
