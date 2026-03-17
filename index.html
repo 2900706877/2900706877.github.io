@@ -333,36 +333,61 @@
 
         // --- 3. 业务操作 ---
         async function signAndAddToMempool(type, data) {
-            if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                throw new Error('No wallet'); 
+            }
+            
             const message = JSON.stringify(data);
             showStatus('请在钱包中签名确认 (免费)...', 'success');
             
             try {
-                const signature = await web3.eth.personal.sign(message, accounts[0], '');
+                // 【关键修复】：将明文字符串转换为 Hex 格式
+                const messageHex = web3.utils.utf8ToHex(message);
+                
+                // 直接调用底层的 personal_sign API
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [messageHex, accounts[0]]
+                });
+
                 mempool.push({ type, data, signature });
                 
                 document.getElementById('mempool-count').textContent = mempool.length;
                 showStatus('操作已记录，等待打包上链', 'success');
                 renderApp(); 
             } catch (error) {
-                showStatus('用户取消了签名', 'error');
+                console.error("签名失败:", error);
+                showStatus('用户取消了签名或发生错误', 'error');
                 throw error;
             }
         }
 
         async function createSection() {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
+
             const name = document.getElementById('section-name').value;
             const desc = document.getElementById('section-description').value;
             if (!name || !desc) { showStatus('请填写完整', 'error'); return; }
             
             const data = { id: generateId(), name, description: desc, creator: accounts[0] };
-            await signAndAddToMempool('create_section', data);
             
-            document.getElementById('section-name').value = '';
-            document.getElementById('section-description').value = '';
+            try {
+                await signAndAddToMempool('create_section', data);
+                document.getElementById('section-name').value = '';
+                document.getElementById('section-description').value = '';
+            } catch (error) {}
         }
 
         async function createPost() {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
+
             const sectionId = document.getElementById('post-section').value;
             const title = document.getElementById('post-title').value;
             const content = document.getElementById('post-content').value;
@@ -378,41 +403,49 @@
             }
 
             const data = { id: generateId(), author: accounts[0], title, content, timestamp: Date.now(), sectionId, imageCid, fileName };
-            await signAndAddToMempool('create_post', data);
             
-            document.getElementById('post-title').value = '';
-            document.getElementById('post-content').value = '';
-            document.getElementById('post-image').value = '';
-            document.getElementById('file-name').textContent = '';
-            document.getElementById('image-preview').style.display = 'none';
+            try {
+                await signAndAddToMempool('create_post', data);
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-content').value = '';
+                document.getElementById('post-image').value = '';
+                document.getElementById('file-name').textContent = '';
+                document.getElementById('image-preview').style.display = 'none';
+                document.getElementById('text-preview').style.display = 'none';
+            } catch (error) {}
         }
 
-        async function createComment(postId) {
-            try {
-                const contentBox = document.getElementById(`comment-content-${postId}`);
-                if (!contentBox) { showStatus('系统错误：找不到评论输入框', 'error'); return; }
-                
-                const content = contentBox.value.trim();
-                if (!content) { showStatus('评论不能为空', 'error'); return; }
-
-                showStatus('正在上传评论到 IPFS...', 'success');
-                const cid = await ipfsIntegration.addContent(content);
-                
-                const data = { id: generateId(), postId, author: accounts[0], content, cid, timestamp: Date.now() };
-                await signAndAddToMempool('create_comment', data);
-                
-                contentBox.value = '';
-                const form = document.getElementById(`comment-form-${postId}`);
-                if (form) form.style.display = 'none';
-                showStatus('评论已提交到打包队列', 'success');
-            } catch (error) {
-                showStatus('发布评论失败: ' + error.message, 'error');
+        window.createComment = async function(postId) {
+            // 前置检查钱包状态
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
             }
+
+            const contentBox = document.getElementById(`comment-content-${postId}`);
+            const content = contentBox.value;
+            if (!content) { showStatus('评论不能为空', 'error'); return; }
+
+            const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
+            
+            try {
+                await signAndAddToMempool('create_comment', data);
+                // 成功签名后清空输入框并收起表单
+                contentBox.value = '';
+                toggleCommentForm(postId);
+            } catch (error) {}
         }
 
         window.likeEntity = async function(targetId) {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
+
             const data = { targetId, user: accounts[0], timestamp: Date.now() };
-            await signAndAddToMempool('like', data);
+            try {
+                await signAndAddToMempool('like', data);
+            } catch (error) {}
         }
 
         // --- 4. Relayer 打包上链 ---
@@ -447,8 +480,6 @@
             const form = document.getElementById(`comment-form-${postId}`);
             if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
         };
-
-        window.createComment = createComment;
 
         window.filterBySection = function(sectionId) {
             currentSectionFilter = sectionId;
@@ -534,7 +565,7 @@
                 
                 let attachmentHtml = '';
                 if (post.imageCid) {
-                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     const isText = post.fileName && post.fileName.endsWith('.txt');
                     if (isImage) {
                         attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
@@ -614,7 +645,7 @@
             
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
+                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg') || file.type.match('image/png');
                 const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
                 fileName.textContent = file.name;
                 
@@ -667,8 +698,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
