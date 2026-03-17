@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>畅所欲言 - Web3去中心化论坛</title>
+    <title>畅所欲言 - Web3去中心化论坛 (Rollup版)</title>
     <link rel="icon" href="data:,"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -333,36 +333,61 @@
 
         // --- 3. 业务操作 ---
         async function signAndAddToMempool(type, data) {
-            if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                throw new Error('No wallet'); 
+            }
+            
             const message = JSON.stringify(data);
             showStatus('请在钱包中签名确认 (免费)...', 'success');
             
             try {
-                const signature = await web3.eth.personal.sign(message, accounts[0], '');
+                // 转换为 Hex 格式
+                const messageHex = web3.utils.utf8ToHex(message);
+                
+                // 直接调用底层的 personal_sign API
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [messageHex, accounts[0]]
+                });
+
                 mempool.push({ type, data, signature });
                 
                 document.getElementById('mempool-count').textContent = mempool.length;
                 showStatus('操作已记录，等待打包上链', 'success');
                 renderApp(); 
             } catch (error) {
-                showStatus('用户取消了签名', 'error');
+                console.error("签名失败:", error);
+                showStatus('用户取消了签名或发生错误', 'error');
                 throw error;
             }
         }
 
         async function createSection() {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
+
             const name = document.getElementById('section-name').value;
             const desc = document.getElementById('section-description').value;
             if (!name || !desc) { showStatus('请填写完整', 'error'); return; }
             
             const data = { id: generateId(), name, description: desc, creator: accounts[0] };
-            await signAndAddToMempool('create_section', data);
             
-            document.getElementById('section-name').value = '';
-            document.getElementById('section-description').value = '';
+            try {
+                await signAndAddToMempool('create_section', data);
+                document.getElementById('section-name').value = '';
+                document.getElementById('section-description').value = '';
+            } catch (error) {}
         }
 
         async function createPost() {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
+
             const sectionId = document.getElementById('post-section').value;
             const title = document.getElementById('post-title').value;
             const content = document.getElementById('post-content').value;
@@ -378,33 +403,54 @@
             }
 
             const data = { id: generateId(), author: accounts[0], title, content, timestamp: Date.now(), sectionId, imageCid, fileName };
-            await signAndAddToMempool('create_post', data);
             
-            document.getElementById('post-title').value = '';
-            document.getElementById('post-content').value = '';
-            document.getElementById('post-image').value = '';
-            document.getElementById('file-name').textContent = '';
-            document.getElementById('image-preview').style.display = 'none';
+            try {
+                await signAndAddToMempool('create_post', data);
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-content').value = '';
+                document.getElementById('post-image').value = '';
+                document.getElementById('file-name').textContent = '';
+                document.getElementById('image-preview').style.display = 'none';
+                document.getElementById('text-preview').style.display = 'none';
+            } catch (error) {}
         }
 
-        window.createComment = async function(postId) {
+        // 修改为独立的逻辑函数，不再挂载到 window，由事件代理调用
+        async function handleCreateComment(postId) {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
+
             const contentBox = document.getElementById(`comment-content-${postId}`);
             const content = contentBox.value;
             if (!content) { showStatus('评论不能为空', 'error'); return; }
 
+            const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
+            
             try {
-                const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
                 await signAndAddToMempool('create_comment', data);
                 contentBox.value = '';
-                document.getElementById(`comment-form-${postId}`).style.display = 'none';
+                // 成功后收起表单
+                const form = document.getElementById(`comment-form-${postId}`);
+                if (form) form.style.display = 'none';
             } catch (error) {
-                console.error('发布评论失败:', error);
+                console.error("评论流程异常:", error);
             }
         }
 
-        window.likeEntity = async function(targetId) {
+        // 修改为独立的逻辑函数，由事件代理调用
+        async function handleLikeEntity(targetId) {
+            if (!accounts || accounts.length === 0) { 
+                showStatus('请先连接钱包', 'error'); 
+                return; 
+            }
             const data = { targetId, user: accounts[0], timestamp: Date.now() };
-            await signAndAddToMempool('like', data);
+            try {
+                await signAndAddToMempool('like', data);
+            } catch (error) {
+                console.error("点赞流程异常:", error);
+            }
         }
 
         // --- 4. Relayer 打包上链 ---
@@ -434,12 +480,7 @@
             }
         }
 
-        // --- 5. 辅助功能 (评论显隐、清理搜索、过滤分区) ---
-        window.toggleCommentForm = function(postId) {
-            const form = document.getElementById(`comment-form-${postId}`);
-            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        };
-
+        // --- 5. 辅助功能 (清理搜索、过滤分区) ---
         window.filterBySection = function(sectionId) {
             currentSectionFilter = sectionId;
             renderApp();
@@ -524,7 +565,7 @@
                 
                 let attachmentHtml = '';
                 if (post.imageCid) {
-                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     const isText = post.fileName && post.fileName.endsWith('.txt');
                     if (isImage) {
                         attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
@@ -543,6 +584,7 @@
                     }
                 }
 
+                // 移除所有的 onclick 属性，替换为带有特定类的标识，使用 data-* 传递必要的 ID 参数
                 const postHtml = `
                     <div class="post">
                         <div class="post-header">
@@ -558,11 +600,11 @@
                         ${attachmentHtml}
                         
                         <div class="post-actions-bar">
-                            <button class="action-btn" onclick="likeEntity('${post.id}')">
+                            <button class="action-btn like-post-btn" data-target-id="${post.id}">
                                 <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                 <span>点赞 (${likesCount})</span>
                             </button>
-                            <button class="action-btn" onclick="toggleCommentForm('${post.id}')">
+                            <button class="action-btn toggle-comment-btn" data-post-id="${post.id}">
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                 <span>评论</span>
                             </button>
@@ -570,7 +612,7 @@
                         
                         <div id="comment-form-${post.id}" class="comment-form-container" style="display: none;">
                             <textarea id="comment-content-${post.id}" class="modern-input" placeholder="输入你想说的内容..." style="min-height: 70px; margin-bottom: 12px;"></textarea>
-                            <button class="btn btn-primary btn-sm" onclick="createComment('${post.id}')">发送评论</button>
+                            <button class="btn btn-primary btn-sm submit-comment-btn" data-post-id="${post.id}">发送评论</button>
                         </div>
                         
                         <div class="comments-list">
@@ -583,7 +625,7 @@
                                             <span class="comment-time">${new Date(c.timestamp).toLocaleString()}</span>
                                         </div>
                                         <div class="comment-text">${c.content}</div>
-                                        <button class="action-btn comment-like-btn" onclick="likeEntity('${c.id}')" style="padding:0; height:auto;">
+                                        <button class="action-btn comment-like-btn" data-target-id="${c.id}" style="padding:0; height:auto;">
                                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                             ${currentState.likes[c.id] ? currentState.likes[c.id].length : 0}
                                         </button>
@@ -604,7 +646,7 @@
             
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
+                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg') || file.type.match('image/png');
                 const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
                 fileName.textContent = file.name;
                 
@@ -642,6 +684,7 @@
             }
         };
 
+        // --- 7. 全局事件代理绑定 ---
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
             if (window.ethereum) {
@@ -652,13 +695,45 @@
                 window.ethereum.on('accountsChanged', () => window.location.reload());
                 window.ethereum.on('chainChanged', () => window.location.reload());
             }
+
+            // 【新增】：统一在 #post-list 父容器上挂载事件代理监听
+            const postListElement = document.getElementById('post-list');
+            if (postListElement) {
+                postListElement.addEventListener('click', async function(event) {
+                    // 处理发送评论按钮
+                    const submitBtn = event.target.closest('.submit-comment-btn');
+                    if (submitBtn) {
+                        event.preventDefault();
+                        const postId = submitBtn.getAttribute('data-post-id');
+                        await handleCreateComment(postId);
+                        return;
+                    }
+
+                    // 处理展开/收起评论表单按钮
+                    const toggleBtn = event.target.closest('.toggle-comment-btn');
+                    if (toggleBtn) {
+                        event.preventDefault();
+                        const postId = toggleBtn.getAttribute('data-post-id');
+                        const form = document.getElementById(`comment-form-${postId}`);
+                        if (form) {
+                            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                        }
+                        return;
+                    }
+
+                    // 处理点赞帖子和点赞评论按钮
+                    const likeBtn = event.target.closest('.like-post-btn') || event.target.closest('.comment-like-btn');
+                    if (likeBtn) {
+                        event.preventDefault();
+                        const targetId = likeBtn.getAttribute('data-target-id');
+                        await handleLikeEntity(targetId);
+                        return;
+                    }
+                });
+            }
         };
+
         document.getElementById('connect-wallet').addEventListener('click', connectWallet);
     </script>
 </body>
 </html>
-
-
-
-
-
