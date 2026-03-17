@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朱晓展毕业设计</title>
+    <title>畅所欲言 - Web3去中心化论坛 (Rollup版)</title>
     <link rel="icon" href="data:,"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -120,7 +120,7 @@
         <div class="nav-container">
             <div class="brand">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-                畅所欲言
+                畅所欲言 (Rollup版)
             </div>
             <div id="wallet-status">
                 <span id="wallet-address"></span>
@@ -158,11 +158,12 @@
         <main class="main-feed">
             <div class="card" style="border: 2px dashed var(--primary); background: rgba(79, 70, 229, 0.05);">
                 <div class="card-header" style="color: var(--primary); border-bottom: 1px dashed rgba(79, 70, 229, 0.3);">
-                    ⚙️ 打包控制台
+                    ⚙️ 节点 Relayer 打包控制台
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <p>待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
+                        <p>本地内存池待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">实际项目中，此操作由后端服务器定时自动触发执行上链</p>
                     </div>
                     <button id="batch-submit-btn" class="btn btn-primary" onclick="submitBatchToChain()">执行打包上链 (需付Gas)</button>
                 </div>
@@ -171,7 +172,7 @@
             <div class="card">
                 <div class="card-header">
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    发布动态
+                    发布动态 (无Gas签名)
                 </div>
                 <div class="form-group">
                     <select id="post-section" class="modern-input">
@@ -196,7 +197,7 @@
                     <img id="image-preview" alt="图片预览" style="display: none;">
                     <div id="text-preview" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
                 </div>
-                <button onclick="createPost()" class="btn btn-primary">签名并发布</button>
+                <button onclick="createPost()" class="btn btn-primary">签名并发布 (零Gas费)</button>
             </div>
     
             <div class="feed-tools">
@@ -223,70 +224,44 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
     <script src="ipfs.js"></script>
     <script>
+        // 【重要】记得确认这里是你新部署的 Rollup 合约地址
+        const contractAddress = "0xbAc5371C93d6fBE8385D34bd08e78c174C644472"; 
+        
         const abi = [
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"author","type":"address"},{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"cid","type":"string"}],"name":"PostCreated","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"author","type":"address"},{"indexed":false,"internalType":"string","name":"cid","type":"string"}],"name":"CommentCreated","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"PostLiked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"CommentLiked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"name","type":"string"},{"indexed":false,"internalType":"address","name":"creator","type":"address"}],"name":"SectionCreated","type":"event"},
-            {"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_description","type":"string"}],"name":"createSection","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_sectionId","type":"uint256"},{"internalType":"string","name":"_title","type":"string"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"},{"internalType":"string","name":"_imageCid","type":"string"},{"internalType":"string","name":"_fileName","type":"string"}],"name":"createPost","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"}],"name":"createComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"likePost","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"likeComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPostLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"getCommentLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedPost","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedComment","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPost","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"string","name":"imageCid","type":"string"},{"internalType":"string","name":"fileName","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"getAllPostIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"comments","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"postId","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"sections","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"description","type":"string"},{"internalType":"address","name":"creator","type":"address"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"postCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"commentCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"sectionCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"packetId","type":"uint256"},{"indexed":false,"internalType":"string","name":"cid","type":"string"},{"indexed":false,"internalType":"bytes32","name":"rootHash","type":"bytes32"},{"indexed":false,"internalType":"address","name":"relayer","type":"address"},{"indexed":false,"internalType":"uint256","name":"operationCount","type":"uint256"}],"name":"BatchSubmitted","type":"event"},
+            {"inputs":[],"name":"getAllPackets","outputs":[{"components":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"bytes32","name":"rootHash","type":"bytes32"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"address","name":"relayer","type":"address"},{"internalType":"uint256","name":"operationCount","type":"uint256"}],"internalType":"struct ForumRollup.DataPacket[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"dataPackets","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"bytes32","name":"rootHash","type":"bytes32"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"address","name":"relayer","type":"address"},{"internalType":"uint256","name":"operationCount","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"packetCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"string","name":"_cid","type":"string"},{"internalType":"bytes32","name":"_rootHash","type":"bytes32"},{"internalType":"uint256","name":"_operationCount","type":"uint256"}],"name":"submitBatch","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
     
-        const contractAddress = "0xbAc5371C93d6fBE8385D34bd08e78c174C644472";
         let web3, contract, accounts;
-        let currentSearchKeyword = '';
-        let isConnecting = false;
-        let isWalletConnected = false;
-    
-        function shortenAddress(address) {
-            return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : '';
-        }
-    
+        
+        // 核心状态机与新增的过滤状态
+        let appState = { sections: [], posts: [], comments: [], likes: {} };
+        let mempool = []; 
+        let currentSectionFilter = ''; // 用于记录当前选中的分区ID
+
+        function generateId() { return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 10000); }
+        function shortenAddress(address) { return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : ''; }
+
+        // --- 1. 钱包连接 ---
         async function connectWallet() {
-            if (!window.ethereum) {
-                showStatus('请安装MetaMask钱包', 'error');
-                return;
-            }
-            if (isConnecting || isWalletConnected) return;
-            isConnecting = true;
+            if (!window.ethereum) { showStatus('请安装MetaMask钱包', 'error'); return; }
             try {
                 accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 web3 = new Web3(window.ethereum);
-                const chainId = await web3.eth.getChainId();
-                if (chainId !== 11155111n) {
-                    showStatus('请切换到Sepolia测试网络', 'error');
-                    isConnecting = false;
-                    return;
-                }
                 contract = new web3.eth.Contract(abi, contractAddress);
                 document.getElementById('wallet-address').textContent = shortenAddress(accounts[0]);
                 document.getElementById('connect-wallet').style.display = 'none';
                 showStatus('钱包连接成功', 'success');
-                await loadSections();
-                await loadPosts();
-                isWalletConnected = true;
+                
+                await syncStateFromChain();
             } catch (error) {
-                showStatus('连接钱包失败: ' + error.message, 'error');
-            } finally {
-                isConnecting = false;
+                showStatus('连接失败: ' + error.message, 'error');
             }
         }
-    
+
         function showStatus(message, type) {
             const statusDiv = document.createElement('div');
             statusDiv.className = `status status-${type}`;
@@ -298,219 +273,324 @@
                 setTimeout(() => statusDiv.remove(), 300);
             }, 3000);
         }
-    
-        async function loadSections() {
-            if (!contract) return;
-            try {
-                //强转 BigInt 为 Number
-                const sectionCounter = Number(await contract.methods.sectionCounter().call());
-                const sectionList = document.getElementById('section-list');
-                const postSectionSelect = document.getElementById('post-section');
-                sectionList.innerHTML = '';
-                postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
-                
-                if (sectionCounter === 0) {
-                    sectionList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px 0;">暂无分区，快来创建第一个吧</p>';
-                    return;
-                }
-                
-                for (let i = 1; i <= sectionCounter; i++) {
-                    const section = await contract.methods.sections(i).call();
-                    const sectionItem = document.createElement('div');
-                    sectionItem.className = 'section-item';
-                    
-                    sectionItem.innerHTML = `
-                        <div class="section-icon">${section.name.substring(0,1).toUpperCase()}</div>
-                        <div class="section-details">
-                            <h4>${section.name}</h4>
-                            <p>${section.description}</p>
-                        </div>
-                    `;
-                    sectionItem.addEventListener('click', function() {
-                        loadPostsBySection(Number(section.id));
-                        document.querySelectorAll('.section-item').forEach(item => {
-                            item.style.borderColor = 'var(--border)';
-                            item.style.background = 'var(--surface)';
-                        });
-                        this.style.borderColor = 'var(--primary)';
-                        this.style.background = '#F8FAFC';
-                    });
-                    sectionList.appendChild(sectionItem);
-                    
-                    const option = document.createElement('option');
-                    option.value = Number(section.id);
-                    option.textContent = section.name;
-                    postSectionSelect.appendChild(option);
-                }
-            } catch (error) {
-                showStatus('加载分区失败', 'error');
+
+        // --- 2. 状态重构 ---
+        function applyOperationToState(state, op) {
+            if (!op || !op.type || !op.data) return; 
+            if (op.type === 'create_section') {
+                if (!state.sections.find(s => s.id === op.data.id)) state.sections.push(op.data);
+            } else if (op.type === 'create_post') {
+                if (!state.posts.find(p => p.id === op.data.id)) state.posts.push(op.data);
+            } else if (op.type === 'create_comment') {
+                if (!state.comments.find(c => c.id === op.data.id)) state.comments.push(op.data);
+            } else if (op.type === 'like') {
+                const targetId = op.data.targetId;
+                if (!state.likes[targetId]) state.likes[targetId] = [];
+                if (!state.likes[targetId].includes(op.data.user)) state.likes[targetId].push(op.data.user);
             }
         }
-    
-        async function loadPosts() {
-            loadPostsBySection(0);
-        }
-    
-        async function loadPostsBySection(sectionId) {
+
+        async function syncStateFromChain() {
             if (!contract) return;
-            const postList = document.getElementById('post-list');
+            showStatus('正在从区块链与 IPFS 同步数据...', 'success');
+            
+            let newState = { sections: [], posts: [], comments: [], likes: {} };
             
             try {
-                postList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);"><svg style="animation: spin 1s linear infinite;" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg><p style="margin-top:12px;">正在加载星球电波...</p></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>';
-                const sectionIdNum = parseInt(sectionId);
-                const sortBy = document.getElementById('sort-by').value;
-                const postIds = await contract.methods.getAllPostIds().call();
+                const packets = await contract.methods.getAllPackets().call();
                 
-                if (postIds.length === 0) {
-                    postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">这片宇宙空空如也，发布第一条动态吧</div>';
-                    return;
-                }
-                
-                postList.innerHTML = '';
-                const posts = [];
-                
-                for (const postId of postIds) {
-                    const post = await contract.methods.getPost(postId).call();
-                    const postSectionId = Number(post.sectionId);
-                    const postTimestamp = Number(post.timestamp);
-                    const postLikes = Number(post.likes);
-                    const postIdNum = Number(post.id);
-                    
-                    if (sectionIdNum !== 0 && postSectionId !== sectionIdNum) continue;
-                    
-                    if (currentSearchKeyword) {
-                        const keyword = currentSearchKeyword.toLowerCase();
-                        if (!post.title.toLowerCase().includes(keyword) && !post.content.toLowerCase().includes(keyword)) continue;
-                    }
-                    
-                    const section = await contract.methods.sections(post.sectionId).call();
-                    posts.push({ id: postIdNum, author: post.author, title: post.title, content: post.content, cid: post.cid, imageCid: post.imageCid, fileName: post.fileName, timestamp: postTimestamp, sectionId: postSectionId, likes: postLikes, sectionName: section.name });
-                }
-                
-                if (posts.length === 0) {
-                    postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">没有找到符合条件的帖子</div>';
-                    return;
-                }
-                
-                posts.sort((a, b) => {
-                    switch (sortBy) {
-                        case 'time-desc': return b.timestamp - a.timestamp;
-                        case 'time-asc': return a.timestamp - b.timestamp;
-                        case 'likes-desc': return b.likes - a.likes;
-                        case 'likes-asc': return a.likes - b.likes;
-                        default: return b.timestamp - a.timestamp;
-                    }
-                });
-                
-                for (const post of posts) {
-                    const postItem = document.createElement('div');
-                    postItem.className = 'post';
-                    
-                    let attachmentHtml = '';
-                    if (post.imageCid && post.imageCid !== '') {
-                        const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
-                        const isText = post.fileName && post.fileName.endsWith('.txt');
+                for (const packet of packets) {
+                    const cid = packet.cid || packet[1];
+                    if (!cid) continue;
+
+                    try {
+                        const contentStr = await ipfsIntegration.getContent(cid);
+                        if (contentStr.startsWith('Mock content')) continue;
+
+                        let parsed;
+                        try {
+                            parsed = JSON.parse(contentStr);
+                            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                        } catch (e) { continue; }
                         
-                        if (isImage) {
-                            attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">`;
-                        } else {
-                            let icon = isText ? '📄' : '📎';
-                            let fName = post.fileName || '未知文件';
-                            attachmentHtml = `
-                                <div class="attachment-box">
-                                    <span>${icon} <span style="font-weight: 500;">${fName}</span></span>
-                                    <button onclick="downloadFile('${post.imageCid}', '${fName}')" class="btn btn-primary btn-sm">下载附件</button>
-                                </div>
-                            `;
+                        const operations = parsed.data || [];
+                        for (const op of operations) {
+                            applyOperationToState(newState, op);
                         }
+                    } catch (e) {
+                        console.warn('拉取或处理批次异常, CID:', cid, e);
                     }
-                    
-                    const postIdStr = String(post.id);
-                    
-                    postItem.innerHTML = `
+                }
+                
+                appState = newState;
+                renderApp(); 
+                showStatus('数据同步完成', 'success');
+            } catch (e) {
+                console.error("同步区块链状态严重错误:", e);
+                showStatus('同步区块链状态失败', 'error');
+            }
+        }
+
+        // --- 3. 业务操作 ---
+        async function signAndAddToMempool(type, data) {
+            if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
+            const message = JSON.stringify(data);
+            showStatus('请在钱包中签名确认 (免费)...', 'success');
+            
+            try {
+                const signature = await web3.eth.personal.sign(message, accounts[0], '');
+                mempool.push({ type, data, signature });
+                
+                document.getElementById('mempool-count').textContent = mempool.length;
+                showStatus('操作已记录，等待打包上链', 'success');
+                renderApp(); 
+            } catch (error) {
+                showStatus('用户取消了签名', 'error');
+                throw error;
+            }
+        }
+
+        async function createSection() {
+            const name = document.getElementById('section-name').value;
+            const desc = document.getElementById('section-description').value;
+            if (!name || !desc) { showStatus('请填写完整', 'error'); return; }
+            
+            const data = { id: generateId(), name, description: desc, creator: accounts[0] };
+            await signAndAddToMempool('create_section', data);
+            
+            document.getElementById('section-name').value = '';
+            document.getElementById('section-description').value = '';
+        }
+
+        async function createPost() {
+            const sectionId = document.getElementById('post-section').value;
+            const title = document.getElementById('post-title').value;
+            const content = document.getElementById('post-content').value;
+            const imageFile = document.getElementById('post-image').files[0];
+            
+            if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
+            
+            let imageCid = '', fileName = '';
+            if (imageFile) {
+                showStatus('正在上传附件至 IPFS...', 'success');
+                imageCid = await ipfsIntegration.addFile(imageFile);
+                fileName = imageFile.name;
+            }
+
+            const data = { id: generateId(), author: accounts[0], title, content, timestamp: Date.now(), sectionId, imageCid, fileName };
+            await signAndAddToMempool('create_post', data);
+            
+            document.getElementById('post-title').value = '';
+            document.getElementById('post-content').value = '';
+            document.getElementById('post-image').value = '';
+            document.getElementById('file-name').textContent = '';
+            document.getElementById('image-preview').style.display = 'none';
+        }
+
+        window.createComment = async function(postId) {
+            const contentBox = document.getElementById(`comment-content-${postId}`);
+            const content = contentBox.value;
+            if (!content) { showStatus('评论不能为空', 'error'); return; }
+
+            const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
+            await signAndAddToMempool('create_comment', data);
+        }
+
+        window.likeEntity = async function(targetId) {
+            const data = { targetId, user: accounts[0], timestamp: Date.now() };
+            await signAndAddToMempool('like', data);
+        }
+
+        // --- 4. Relayer 打包上链 ---
+        async function submitBatchToChain() {
+            if (mempool.length === 0) { showStatus('内存池为空，没有需要打包的数据', 'error'); return; }
+            if (!contract) { showStatus('请连接钱包', 'error'); return; }
+
+            try {
+                showStatus(`正在打包 ${mempool.length} 条操作...`, 'success');
+                const batchData = [...mempool]; 
+                
+                const packet = await ipfsIntegration.createDataPacket(batchData);
+                const packetObj = { timestamp: Date.now(), data: batchData, version: '1.0' };
+                ipfsIntegration.lightStorage.store(packet.cid, JSON.stringify(packetObj));
+
+                showStatus('发送上链交易 (需要Gas)...', 'success');
+                await contract.methods.submitBatch(packet.cid, packet.rootHash, batchData.length).send({ from: accounts[0] });
+
+                showStatus('打包上链成功！', 'success');
+                mempool = []; 
+                document.getElementById('mempool-count').textContent = '0';
+                
+                await syncStateFromChain();
+            } catch (error) {
+                console.error(error);
+                showStatus('打包失败: ' + error.message, 'error');
+            }
+        }
+
+        // --- 5. 辅助功能 (评论显隐、清理搜索、过滤分区) ---
+        window.toggleCommentForm = function(postId) {
+            const form = document.getElementById(`comment-form-${postId}`);
+            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.filterBySection = function(sectionId) {
+            currentSectionFilter = sectionId;
+            renderApp();
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('search-input').value = '';
+            renderApp();
+        };
+
+        // --- 6. 前端视图渲染 ---
+        function renderApp() {
+            let currentState = JSON.parse(JSON.stringify(appState)); 
+            for (const op of mempool) { applyOperationToState(currentState, op); }
+
+            // 渲染左侧分区 (包含“全部分区”选项)
+            const sectionList = document.getElementById('section-list');
+            const postSectionSelect = document.getElementById('post-section');
+            sectionList.innerHTML = '';
+            postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
+            
+            const isAllActive = currentSectionFilter === '' ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
+            sectionList.innerHTML += `
+                <div class="section-item" ${isAllActive} onclick="filterBySection('')">
+                    <div class="section-icon">🌐</div>
+                    <div class="section-details"><h4>全部分区</h4><p>查看所有星球的电波</p></div>
+                </div>`;
+
+            currentState.sections.forEach(sec => {
+                const isActive = currentSectionFilter === sec.id ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
+                sectionList.innerHTML += `
+                    <div class="section-item" ${isActive} onclick="filterBySection('${sec.id}')">
+                        <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
+                        <div class="section-details"><h4>${sec.name}</h4><p>${sec.description}</p></div>
+                    </div>`;
+                postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
+            });
+
+            // 获取过滤和排序设置
+            let filteredPosts = currentState.posts;
+
+            // 1. 执行分区过滤
+            if (currentSectionFilter !== '') {
+                filteredPosts = filteredPosts.filter(p => p.sectionId === currentSectionFilter);
+            }
+
+            // 2. 执行关键词过滤
+            const keyword = document.getElementById('search-input').value.toLowerCase().trim();
+            if (keyword) {
+                filteredPosts = filteredPosts.filter(post => 
+                    post.title.toLowerCase().includes(keyword) || post.content.toLowerCase().includes(keyword)
+                );
+            }
+
+            // 3. 执行排序
+            const sortBy = document.getElementById('sort-by').value;
+            filteredPosts.sort((a, b) => {
+                const likesA = currentState.likes[a.id] ? currentState.likes[a.id].length : 0;
+                const likesB = currentState.likes[b.id] ? currentState.likes[b.id].length : 0;
+                switch (sortBy) {
+                    case 'time-desc': return b.timestamp - a.timestamp;
+                    case 'time-asc': return a.timestamp - b.timestamp;
+                    case 'likes-desc': return likesB - likesA;
+                    case 'likes-asc': return likesA - likesB;
+                    default: return b.timestamp - a.timestamp;
+                }
+            });
+
+            // 渲染帖子列表
+            const postList = document.getElementById('post-list');
+            postList.innerHTML = '';
+            
+            if (filteredPosts.length === 0) {
+                postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">这片宇宙空空如也，发布第一条动态吧</div>';
+                return;
+            }
+
+            filteredPosts.forEach(post => {
+                const section = currentState.sections.find(s => s.id === post.sectionId);
+                const sectionName = section ? section.name : '未知分区';
+                const likesCount = currentState.likes[post.id] ? currentState.likes[post.id].length : 0;
+                
+                let attachmentHtml = '';
+                if (post.imageCid) {
+                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                    const isText = post.fileName && post.fileName.endsWith('.txt');
+                    if (isImage) {
+                        attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
+                    } else if (isText) {
+                        attachmentHtml = `
+                            <div class="attachment-box">
+                                <span>📎 <span style="font-weight: 500;">${post.fileName}</span></span>
+                                <button onclick="downloadFile('${post.imageCid}', '${post.fileName}')" class="btn btn-primary btn-sm">下载</button>
+                            </div>`;
+                    } else {
+                        attachmentHtml = `
+                            <div class="attachment-box">
+                                <span>📎 <span style="font-weight: 500;">${post.fileName || '附件'}</span></span>
+                                <button onclick="downloadFile('${post.imageCid}', '${post.fileName || 'download'}')" class="btn btn-primary btn-sm">下载</button>
+                            </div>`;
+                    }
+                }
+
+                const postHtml = `
+                    <div class="post">
                         <div class="post-header">
                             <div class="post-avatar">${post.author.substring(2,4).toUpperCase()}</div>
                             <div class="post-meta-info">
-                                <span class="post-author" title="${post.author}">${shortenAddress(post.author)}</span>
-                                <span class="post-time">${new Date(post.timestamp * 1000).toLocaleString()}</span>
+                                <span class="post-author">${shortenAddress(post.author)}</span>
+                                <span class="post-time">${new Date(post.timestamp).toLocaleString()}</span>
                             </div>
-                            <span class="badge-section">${post.sectionName}</span>
+                            <span class="badge-section">${sectionName}</span>
                         </div>
                         <h3 class="post-title">${post.title}</h3>
                         <div class="post-content">${post.content}</div>
                         ${attachmentHtml}
                         
                         <div class="post-actions-bar">
-                            <button class="action-btn" onclick="likePost('${postIdStr}')">
+                            <button class="action-btn" onclick="likeEntity('${post.id}')">
                                 <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                <span>点赞 (${post.likes})</span>
+                                <span>点赞 (${likesCount})</span>
                             </button>
-                            <button class="action-btn" onclick="toggleCommentForm('${postIdStr}')">
+                            <button class="action-btn" onclick="toggleCommentForm('${post.id}')">
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                 <span>评论</span>
                             </button>
                         </div>
                         
-                        <div id="comment-form-${postIdStr}" class="comment-form-container" style="display: none;">
-                            <textarea id="comment-content-${postIdStr}" class="modern-input" placeholder="输入你想说的内容..." style="min-height: 70px; margin-bottom: 12px;"></textarea>
-                            <button class="btn btn-primary btn-sm" onclick="createComment('${postIdStr}')">发送评论</button>
+                        <div id="comment-form-${post.id}" class="comment-form-container" style="display: none;">
+                            <textarea id="comment-content-${post.id}" class="modern-input" placeholder="输入你想说的内容..." style="min-height: 70px; margin-bottom: 12px;"></textarea>
+                            <button class="btn btn-primary btn-sm" onclick="createComment('${post.id}')">发送评论</button>
                         </div>
                         
-                        <div id="comments-${postIdStr}" class="comments-list"></div>
-                    `;
-                    postList.appendChild(postItem);
-                    
-                    loadComments(post.id);
-                }
-            } catch (error) {
-                console.error(error);
-                postList.innerHTML = '<p style="text-align: center; color: var(--danger); padding: 20px;">加载帖子失败，请刷新重试</p>';
-            }
+                        <div class="comments-list">
+                            ${currentState.comments.filter(c => c.postId === post.id).sort((a, b) => a.timestamp - b.timestamp).map(c => `
+                                <div class="comment-item">
+                                    <div class="comment-avatar">${c.author.substring(2,4).toUpperCase()}</div>
+                                    <div class="comment-body">
+                                        <div class="comment-header">
+                                            <span class="comment-author">${shortenAddress(c.author)}</span>
+                                            <span class="comment-time">${new Date(c.timestamp).toLocaleString()}</span>
+                                        </div>
+                                        <div class="comment-text">${c.content}</div>
+                                        <button class="action-btn comment-like-btn" onclick="likeEntity('${c.id}')" style="padding:0; height:auto;">
+                                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
+                                            ${currentState.likes[c.id] ? currentState.likes[c.id].length : 0}
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                postList.innerHTML += postHtml;
+            });
         }
-    
-        function searchPosts() {
-            currentSearchKeyword = document.getElementById('search-input').value.trim();
-            loadPosts();
-        }
-    
-        function clearSearch() {
-            document.getElementById('search-input').value = '';
-            currentSearchKeyword = '';
-            loadPosts();
-        }
-    
-        //重写了下载机制，强制拉取 Blob 触发真实下载，而不是新标签页查看
-        async function downloadFile(cid, fileName) {
-            try {
-                showStatus('正在准备下载...', 'success');
-                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
-                
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("网络请求失败");
-                
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = fileName || 'download.txt';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(downloadUrl);
-                showStatus('下载已完成', 'success');
-            } catch (error) {
-                console.warn('强转下载失败，切换备用方案', error);
-                const link = document.createElement('a');
-                link.href = `https://gateway.pinata.cloud/ipfs/${cid}`;
-                link.download = fileName || 'download.txt';
-                link.target = '_blank';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                showStatus('若浏览器没有自动下载，请右键选择另存为', 'success');
-            }
-        }
-    
+
         function previewFile(input) {
             const fileName = document.getElementById('file-name');
             const imagePreview = document.getElementById('image-preview');
@@ -520,19 +600,6 @@
                 const file = input.files[0];
                 const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
                 const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
-                
-                if (!isImage && !isText) {
-                    showStatus('请选择JPG图片或TXT文本文件', 'error');
-                    input.value = '';
-                    return;
-                }
-                
-                if (file.size > 5 * 1024 * 1024) {
-                    showStatus('文件大小不能超过5MB', 'error');
-                    input.value = '';
-                    return;
-                }
-                
                 fileName.textContent = file.name;
                 
                 if (isImage) {
@@ -542,194 +609,45 @@
                 } else if (isText) {
                     file.text().then(text => { textPreview.textContent = text; textPreview.style.display = 'block'; imagePreview.style.display = 'none'; });
                 }
-            } else {
-                fileName.textContent = '';
-                imagePreview.style.display = 'none';
-                textPreview.style.display = 'none';
             }
         }
-    
-        async function loadComments(postId) {
-            if (!contract) return;
+
+        window.downloadFile = async function(cid, fileName) {
             try {
-                //强转 BigInt 为 Number
-                const commentCounter = Number(await contract.methods.commentCounter().call());
-                const commentsDiv = document.getElementById(`comments-${postId}`);
-                if (!commentsDiv) return;
-                commentsDiv.innerHTML = '';
+                showStatus('正在准备下载...', 'success');
+                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
                 
-                for (let i = 1; i <= commentCounter; i++) {
-                    const comment = await contract.methods.comments(i).call();
-                    //统一强转为 Number 进行比较，防止 BigInt 报错中断
-                    if (Number(comment.postId) === Number(postId)) {
-                        const commentItem = document.createElement('div');
-                        commentItem.className = 'comment-item';
-                        
-                        commentItem.innerHTML = `
-                            <div class="comment-avatar">${comment.author.substring(2,4).toUpperCase()}</div>
-                            <div class="comment-body">
-                                <div class="comment-header">
-                                    <span class="comment-author" title="${comment.author}">${shortenAddress(comment.author)}</span>
-                                    <span class="comment-time">${new Date(Number(comment.timestamp) * 1000).toLocaleString()}</span>
-                                </div>
-                                <div class="comment-text">${comment.content}</div>
-                                <button class="action-btn comment-like-btn" onclick="likeComment('${Number(comment.id)}')" style="padding:0; height:auto;">
-                                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                    ${Number(comment.likes)}
-                                </button>
-                            </div>
-                        `;
-                        commentsDiv.appendChild(commentItem);
-                    }
+                const response = await fetch(url, { method: 'GET', mode: 'cors' });
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = fileName || 'download.txt';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+                    showStatus('下载已开始', 'success');
+                    return;
                 }
             } catch (error) {
-                console.error(error);
-                showStatus('加载评论失败', 'error');
+                window.open(`https://gateway.pinata.cloud/ipfs/${cid}`, '_blank');
             }
-        }
-    
-        function toggleCommentForm(postId) {
-            const form = document.getElementById(`comment-form-${postId}`);
-            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        }
-    
-        async function createSection() {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            const name = document.getElementById('section-name').value;
-            const description = document.getElementById('section-description').value;
-            if (!name || !description) { showStatus('请填写分区名称和描述', 'error'); return; }
-            try {
-                await contract.methods.createSection(name, description).send({ from: accounts[0] });
-                showStatus('分区创建成功', 'success');
-                document.getElementById('section-name').value = '';
-                document.getElementById('section-description').value = '';
-                loadSections();
-            } catch (error) { showStatus('创建分区失败', 'error'); }
-        }
-    
-        async function createPost() {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            const sectionId = document.getElementById('post-section').value;
-            const title = document.getElementById('post-title').value;
-            const content = document.getElementById('post-content').value;
-            const imageFile = document.getElementById('post-image').files[0];
-            
-            if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
-            
-            try {
-                showStatus('正在上传内容到IPFS...', 'success');
-                const cid = await ipfsIntegration.addContent(content);
-                
-                let imageCid = '', fileName = '';
-                if (imageFile) {
-                    showStatus('正在上传文件到IPFS...', 'success');
-                    imageCid = await ipfsIntegration.addFile(imageFile);
-                    fileName = imageFile.name;
-                }
-                
-                showStatus('正在提交到区块链...', 'success');
-                await contract.methods.createPost(sectionId, title, content, cid, imageCid, fileName).send({ from: accounts[0] });
-                
-                showStatus('帖子发布成功', 'success');
-                document.getElementById('post-section').value = '';
-                document.getElementById('post-title').value = '';
-                document.getElementById('post-content').value = '';
-                document.getElementById('post-image').value = '';
-                document.getElementById('file-name').textContent = '';
-                document.getElementById('image-preview').style.display = 'none';
-                document.getElementById('text-preview').style.display = 'none';
-                await loadPosts();
-            } catch (error) { showStatus('发布帖子失败', 'error'); }
-        }
-    
-        async function createComment(postId) {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            const postIdNum = Number(postId);
-            const contentElement = document.getElementById(`comment-content-${postIdNum}`);
-            
-            if (!contentElement) { showStatus('找不到输入框', 'error'); return; }
-            
-            const content = contentElement.value;
-            if (!content || content.trim() === '') { showStatus('请填写评论内容', 'error'); return; }
-            
-            try {
-                showStatus('正在上传评论到IPFS...', 'success');
-                const cid = await ipfsIntegration.addContent(content);
-                showStatus('正在提交评论...', 'success');
-                await contract.methods.createComment(postIdNum, content, cid).send({ from: accounts[0], gas: 500000 });
-                showStatus('评论发布成功', 'success');
-                contentElement.value = '';
-                document.getElementById(`comment-form-${postIdNum}`).style.display = 'none';
-                loadComments(postIdNum);
-            } catch (error) { showStatus('发布评论失败', 'error'); }
-        }
-    
-        async function likePost(postId) {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            try {
-                const hasLiked = await contract.methods.hasUserLikedPost(postId, accounts[0]).call();
-                if (hasLiked) { showStatus('您已经点赞过该帖子', 'error'); return; }
-                await contract.methods.likePost(postId).send({ from: accounts[0] });
-                showStatus('点赞成功', 'success');
-                loadPosts();
-            } catch (error) { showStatus('点赞失败', 'error'); }
-        }
-    
-        async function likeComment(commentId) {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            try {
-                const hasLiked = await contract.methods.hasUserLikedComment(commentId, accounts[0]).call();
-                if (hasLiked) { showStatus('您已经点赞过该评论', 'error'); return; }
-                await contract.methods.likeComment(commentId).send({ from: accounts[0] });
-                showStatus('点赞成功', 'success');
-                const comment = await contract.methods.comments(commentId).call();
-                loadComments(Number(comment.postId));
-            } catch (error) { showStatus('点赞失败', 'error'); }
-        }
-    
-        const connectWalletBtn = document.getElementById('connect-wallet');
-        if (connectWalletBtn) connectWalletBtn.addEventListener('click', connectWallet);
-        
-        const createSectionBtn = document.getElementById('create-section');
-        if (createSectionBtn) createSectionBtn.addEventListener('click', createSection);
-        
-        const createPostBtn = document.getElementById('create-post');
-        if (createPostBtn) createPostBtn.addEventListener('click', createPost);
-    
-        window.toggleCommentForm = toggleCommentForm;
-        window.createComment = createComment;
-        window.likePost = likePost;
-        window.likeComment = likeComment;
-        window.loadPostsBySection = loadPostsBySection;
-        window.searchPosts = searchPosts;
-        window.clearSearch = clearSearch;
-        window.previewFile = previewFile;
-        window.downloadFile = downloadFile;
-    
+        };
+
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
             if (window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts.length > 0) await connectWallet();
+                    if (accounts.length > 0) connectWallet();
                 } catch (e) {}
+                window.ethereum.on('accountsChanged', () => window.location.reload());
+                window.ethereum.on('chainChanged', () => window.location.reload());
             }
         };
-    
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (newAccounts) => {
-                if (newAccounts.length === 0) {
-                    document.getElementById('wallet-address').textContent = '';
-                    document.getElementById('connect-wallet').style.display = 'inline-flex';
-                    contract = null;
-                    isWalletConnected = false;
-                    showStatus('钱包已断开连接', 'error');
-                } else if (!isWalletConnected) {
-                    connectWallet();
-                }
-            });
-            window.ethereum.on('chainChanged', () => window.location.reload());
-        }
+        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
     </script>
 </body>
 </html>
