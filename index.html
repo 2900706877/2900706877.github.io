@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>畅所欲言 - Web3去中心化论坛</title>
+    <title>畅所欲言 - Web3去中心化论坛 (Rollup版)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* 沿用你原本优秀的 CSS 样式，未做删减 */
+        /* CSS 保持不变 */
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
@@ -121,7 +121,7 @@
         <div class="nav-container">
             <div class="brand">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-                畅所欲言
+                畅所欲言 (Rollup版)
             </div>
             <div id="wallet-status">
                 <span id="wallet-address"></span>
@@ -159,11 +159,11 @@
         <main class="main-feed">
             <div class="card" style="border: 2px dashed var(--primary); background: rgba(79, 70, 229, 0.05);">
                 <div class="card-header" style="color: var(--primary); border-bottom: 1px dashed rgba(79, 70, 229, 0.3);">
-                    ⚙️ 节点 Relayer 打包控制台
+                    ⚙️ 打包控制台
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <p>本地内存池待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
+                        <p>待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
                         <p style="font-size: 0.85rem; color: var(--text-muted);">实际项目中，此操作由后端服务器定时自动触发执行上链</p>
                     </div>
                     <button id="batch-submit-btn" class="btn btn-primary" onclick="submitBatchToChain()">执行打包上链 (需付Gas)</button>
@@ -173,7 +173,7 @@
             <div class="card">
                 <div class="card-header">
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    发布动态 (无Gas签名)
+                    发布动态
                 </div>
                 <div class="form-group">
                     <select id="post-section" class="modern-input">
@@ -198,7 +198,7 @@
                     <img id="image-preview" alt="图片预览" style="display: none;">
                     <div id="text-preview" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
                 </div>
-                <button onclick="createPost()" class="btn btn-primary">签名并发布 (零Gas费)</button>
+                <button onclick="createPost()" class="btn btn-primary">签名并发布</button>
             </div>
     
             <div class="feed-tools">
@@ -216,10 +216,9 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
     <script src="ipfs.js"></script>
     <script>
-        //每次部署时记得替换
-        const contractAddress = "0x06cc0f99b580E6dbB3266Fb6E8035994Ae6483a7"; 
+        // 【重要】记得确认这里是你新部署的 Rollup 合约地址
+        const contractAddress = "0xYourNewContractAddressHere"; 
         
-        //合约ABI
         const abi = [
             {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"packetId","type":"uint256"},{"indexed":false,"internalType":"string","name":"cid","type":"string"},{"indexed":false,"internalType":"bytes32","name":"rootHash","type":"bytes32"},{"indexed":false,"internalType":"address","name":"relayer","type":"address"},{"indexed":false,"internalType":"uint256","name":"operationCount","type":"uint256"}],"name":"BatchSubmitted","type":"event"},
             {"inputs":[],"name":"getAllPackets","outputs":[{"components":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"bytes32","name":"rootHash","type":"bytes32"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"address","name":"relayer","type":"address"},{"internalType":"uint256","name":"operationCount","type":"uint256"}],"internalType":"struct ForumRollup.DataPacket[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"},
@@ -230,19 +229,10 @@
     
         let web3, contract, accounts;
         
-        // --- 核心状态机 (Event Sourcing 模式) ---
-        // 我们在前端维护完整的数据库状态
-        let appState = {
-            sections: [], // { id, name, description, creator }
-            posts: [],    // { id, author, title, content, timestamp, sectionId, imageCid, fileName }
-            comments: [], // { id, postId, author, content, timestamp }
-            likes: {}     // 记录点赞: { 'post_123': ['0xabc...'], 'comment_456': ['0xdef...'] }
-        };
-
-        // 本地内存池：存放用户签了名、但还没打包上链的操作
+        // 核心状态机
+        let appState = { sections: [], posts: [], comments: [], likes: {} };
         let mempool = []; 
 
-        // 生成唯一ID辅助函数
         function generateId() { return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 10000); }
         function shortenAddress(address) { return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : ''; }
 
@@ -257,7 +247,6 @@
                 document.getElementById('connect-wallet').style.display = 'none';
                 showStatus('钱包连接成功', 'success');
                 
-                // 连接成功后，开始从链上同步状态
                 await syncStateFromChain();
             } catch (error) {
                 showStatus('连接失败: ' + error.message, 'error');
@@ -276,81 +265,89 @@
             }, 3000);
         }
 
-        // --- 2. 状态重构 (读取链上CID -> IPFS拉取 -> 还原状态) ---
-        async function syncStateFromChain() {
-            if (!contract) return;
-            showStatus('正在从区块链同步数据...', 'success');
-            
-            // 重置状态
-            appState = { sections: [], posts: [], comments: [], likes: {} };
-            
-            try {
-                // 读取链上所有批次
-                const packets = await contract.methods.getAllPackets().call();
-                
-                for (const packet of packets) {
-                    try {
-                        // 从 IPFS 获取批次对应的 JSON 字符串
-                        const contentStr = await ipfsIntegration.getContent(packet.cid);
-                        const parsed = JSON.parse(contentStr);
-                        
-                        // ipfs.js 的 createDataPacket 结构是 { timestamp, data, version }
-                        const operations = parsed.data || [];
-                        
-                        // 按顺序执行历史操作，重建状态
-                        for (const op of operations) {
-                            applyOperationToState(appState, op);
-                        }
-                    } catch (e) {
-                        console.warn('解析历史批次失败', packet.cid, e);
-                    }
-                }
-                
-                showStatus('数据同步完成！', 'success');
-                renderApp(); // 渲染界面
-            } catch (e) {
-                showStatus('同步区块链状态失败', 'error');
-                console.error(e);
-            }
-        }
-
-        // 核心：状态归约（Reducer）
+        // --- 2. 状态重构（已解决神秘消失的核心逻辑） ---
         function applyOperationToState(state, op) {
-            // 这里我们信任签名有效（严谨做法是用 web3.eth.accounts.recover 验证 op.signature）
+            if (!op || !op.type || !op.data) return; // 容错
             if (op.type === 'create_section') {
-                state.sections.push(op.data);
+                if (!state.sections.find(s => s.id === op.data.id)) state.sections.push(op.data);
             } else if (op.type === 'create_post') {
-                state.posts.push(op.data);
+                if (!state.posts.find(p => p.id === op.data.id)) state.posts.push(op.data);
             } else if (op.type === 'create_comment') {
-                state.comments.push(op.data);
+                if (!state.comments.find(c => c.id === op.data.id)) state.comments.push(op.data);
             } else if (op.type === 'like') {
                 const targetId = op.data.targetId;
                 if (!state.likes[targetId]) state.likes[targetId] = [];
-                if (!state.likes[targetId].includes(op.data.user)) {
-                    state.likes[targetId].push(op.data.user);
-                }
+                if (!state.likes[targetId].includes(op.data.user)) state.likes[targetId].push(op.data.user);
             }
         }
 
-        // --- 3. 业务操作 (构建事件 -> 签名 -> 存入内存池 -> 乐观渲染) ---
+        async function syncStateFromChain() {
+            if (!contract) return;
+            showStatus('正在从区块链与 IPFS 同步数据...', 'success');
+            
+            // 使用临时状态，防止同步期间清空页面
+            let newState = { sections: [], posts: [], comments: [], likes: {} };
+            
+            try {
+                const packets = await contract.methods.getAllPackets().call();
+                
+                for (const packet of packets) {
+                    const cid = packet.cid || packet[1];
+                    if (!cid) continue;
+
+                    try {
+                        const contentStr = await ipfsIntegration.getContent(cid);
+                        
+                        // 【核心修复 1】：拦截 IPFS 未同步时的 Mock 数据，防止破坏 JSON.parse
+                        if (contentStr.startsWith('Mock content')) {
+                            console.warn(`CID ${cid} 尚未在 IPFS 网络中就绪，请稍后刷新重试。`);
+                            continue;
+                        }
+
+                        let parsed;
+                        try {
+                            parsed = JSON.parse(contentStr);
+                            // 【核心修复 2】：解决 Pinata API 造成的“双重字符串化”问题
+                            if (typeof parsed === 'string') {
+                                parsed = JSON.parse(parsed);
+                            }
+                        } catch (e) {
+                            console.warn(`解析 CID ${cid} JSON 数据失败:`, e);
+                            continue;
+                        }
+                        
+                        const operations = parsed.data || [];
+                        for (const op of operations) {
+                            applyOperationToState(newState, op);
+                        }
+                    } catch (e) {
+                        console.warn('拉取或处理批次异常, CID:', cid, e);
+                    }
+                }
+                
+                appState = newState;
+                renderApp(); 
+                showStatus('数据同步完成', 'success');
+            } catch (e) {
+                console.error("同步区块链状态严重错误:", e);
+                showStatus('同步区块链状态失败', 'error');
+            }
+        }
+
+        // --- 3. 业务操作 ---
         async function signAndAddToMempool(type, data) {
             if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
             
             const message = JSON.stringify(data);
-            showStatus('请在钱包中签名确认 (免费)...', 'success');
+            showStatus('请在钱包中签名确认...', 'success');
             
             try {
-                // 无 Gas 签名
                 const signature = await web3.eth.personal.sign(message, accounts[0], '');
                 
-                const operation = { type, data, signature };
-                mempool.push(operation);
+                mempool.push({ type, data, signature });
                 
-                // 更新 UI
                 document.getElementById('mempool-count').textContent = mempool.length;
                 showStatus('操作已记录，等待打包上链', 'success');
-                
-                // 乐观渲染：马上展示给用户看，不等上链
                 renderApp(); 
                 
             } catch (error) {
@@ -380,7 +377,6 @@
             if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
             
             let imageCid = '', fileName = '';
-            // 如果有附件，依然需要先上传文件拿到 CID
             if (imageFile) {
                 showStatus('正在上传附件至 IPFS...', 'success');
                 imageCid = await ipfsIntegration.addFile(imageFile);
@@ -422,35 +418,35 @@
             if (!contract) { showStatus('请连接钱包', 'error'); return; }
 
             try {
-                showStatus(`正在将 ${mempool.length} 条操作打包传至 IPFS...`, 'success');
+                showStatus(`正在打包 ${mempool.length} 条操作...`, 'success');
                 const batchData = [...mempool]; 
                 
-                // 打包数据到 IPFS
                 const packet = await ipfsIntegration.createDataPacket(batchData);
                 
-                showStatus('正在发送上链交易 (锚定状态)...', 'success');
-                // 调用智能合约锚定 CID
+                // 【核心修复 3】：手动将数据结构写入本地内存缓存
+                // 防止打包完毕后，页面立即调用 syncStateFromChain，遭遇 Pinata 延迟而导致数据消失
+                const packetObj = { timestamp: Date.now(), data: batchData, version: '1.0' };
+                ipfsIntegration.lightStorage.store(packet.cid, JSON.stringify(packetObj));
+
+                showStatus('发送上链交易 (需要Gas)...', 'success');
                 await contract.methods.submitBatch(packet.cid, packet.rootHash, batchData.length).send({ from: accounts[0] });
 
                 showStatus('打包上链成功！', 'success');
-                mempool = []; // 清空内存池
+                mempool = []; 
                 document.getElementById('mempool-count').textContent = '0';
                 
-                // 重新同步链上最终状态
                 await syncStateFromChain();
             } catch (error) {
                 console.error(error);
-                showStatus('打包失败', 'error');
+                showStatus('打包失败: ' + error.message, 'error');
             }
         }
 
-        // --- 5. 前端视图渲染 (结合 confirmed state 和 pending mempool) ---
+        // --- 5. 前端视图渲染 ---
         function renderApp() {
-            // 合并已确认状态和未确认的乐观状态
-            let currentState = JSON.parse(JSON.stringify(appState)); // 深拷贝
+            let currentState = JSON.parse(JSON.stringify(appState)); 
             for (const op of mempool) { applyOperationToState(currentState, op); }
 
-            // 渲染分区
             const sectionList = document.getElementById('section-list');
             const postSectionSelect = document.getElementById('post-section');
             sectionList.innerHTML = '';
@@ -465,12 +461,10 @@
                 postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
             });
 
-            // 渲染帖子
             const postList = document.getElementById('post-list');
             postList.innerHTML = '';
             const keyword = document.getElementById('search-input').value.toLowerCase();
             
-            // 按时间倒序
             const sortedPosts = currentState.posts.sort((a, b) => b.timestamp - a.timestamp);
             
             sortedPosts.forEach(post => {
@@ -548,7 +542,6 @@
             });
         }
 
-        // 文件预览功能辅助
         function previewFile(input) {
             const fileName = document.getElementById('file-name');
             const imagePreview = document.getElementById('image-preview');
@@ -570,9 +563,17 @@
             }
         }
 
-        // 初始化
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
+            // 如果钱包已授权，尝试自动连接
+            if (window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) connectWallet();
+                } catch (e) {}
+                window.ethereum.on('accountsChanged', () => window.location.reload());
+                window.ethereum.on('chainChanged', () => window.location.reload());
+            }
         };
         document.getElementById('connect-wallet').addEventListener('click', connectWallet);
     </script>
