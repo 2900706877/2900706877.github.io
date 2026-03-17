@@ -25,124 +25,119 @@
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-body); color: var(--text-main); line-height: 1.6; }
-    
-    /* 导航栏 */
-    .navbar { position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 16px 0; }
-    .nav-container { max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
-    .brand { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
-    .brand svg { width: 32px; height: 32px; fill: var(--primary); }
-    
-    #wallet-status { display: flex; align-items: center; gap: 12px; }
-    #wallet-address { background: var(--secondary); padding: 8px 16px; border-radius: 20px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); font-family: monospace; display: none; }
-    #wallet-address:not(:empty) { display: block; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-body); color: var(--text-main); line-height: 1.6; }
+        
+        .navbar { position: sticky; top: 0; z-index: 100; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 16px 0; }
+        .nav-container { max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+        .brand { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
+        .brand svg { width: 32px; height: 32px; fill: var(--primary); }
+        
+        #wallet-status { display: flex; align-items: center; gap: 12px; }
+        #wallet-address { background: var(--secondary); padding: 8px 16px; border-radius: 20px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); font-family: monospace; display: none; }
+        #wallet-address:not(:empty) { display: block; }
 
-    /* 主布局 */
-    .container { display: grid; grid-template-columns: 320px 1fr; gap: 32px; max-width: 1280px; margin: 32px auto; padding: 0 24px; }
-    .container.placeholder { display: block; } /* 临时为了兼容原有JS选择器 */
+        .finance-panel { display: none; align-items: center; background: var(--secondary); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; gap: 10px;}
+        .relayer-banner { display: none; background: #FEF3C7; color: #92400E; text-align: center; padding: 8px; font-size: 0.85rem; font-weight: 600; }
 
-    /* 通用卡片样式 */
-    .card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 24px; transition: box-shadow 0.3s ease; }
-    .card:hover { box-shadow: var(--shadow-md); }
-    .card-header { font-size: 1.125rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 12px;}
+        .container { display: grid; grid-template-columns: 320px 1fr; gap: 32px; max-width: 1280px; margin: 32px auto; padding: 0 24px; }
+        .card { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 24px; transition: box-shadow 0.3s ease; }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-header { font-size: 1.125rem; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 12px;}
 
-    /* 表单与输入框 */
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; margin-bottom: 6px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); }
-    .modern-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.95rem; background: var(--bg-body); transition: all 0.2s; font-family: inherit; }
-    .modern-input:focus { outline: none; border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
-    textarea.modern-input { resize: vertical; min-height: 100px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); }
+        .modern-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.95rem; background: var(--bg-body); transition: all 0.2s; font-family: inherit; }
+        .modern-input:focus { outline: none; border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        textarea.modern-input { resize: vertical; min-height: 100px; }
 
-    /* 按钮 */
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-size: 0.95rem; font-weight: 600; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; border: none; }
-    .btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2); }
-    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3); }
-    .btn-secondary { background: var(--secondary); color: var(--text-main); }
-    .btn-secondary:hover { background: #E5E7EB; }
-    .btn-sm { padding: 8px 16px; font-size: 0.875rem; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-size: 0.95rem; font-weight: 600; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3); }
+        .btn-secondary { background: var(--secondary); color: var(--text-main); }
+        .btn-secondary:hover { background: #E5E7EB; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); }
 
-    /* 分区列表 */
-    .section-list { display: flex; flex-direction: column; gap: 12px; }
-    .section-item { padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; background: var(--surface); display: flex; gap: 16px; align-items: flex-start; }
-    .section-item:hover { border-color: var(--primary); background: #F8FAFC; transform: translateX(4px); }
-    .section-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.25rem; flex-shrink: 0; }
-    .section-details h4 { font-size: 1rem; color: var(--text-main); margin-bottom: 4px; }
-    .section-details p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+        .section-list { display: flex; flex-direction: column; gap: 12px; }
+        .section-item { padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; background: var(--surface); display: flex; gap: 16px; align-items: flex-start; }
+        .section-item:hover { border-color: var(--primary); background: #F8FAFC; transform: translateX(4px); }
+        .section-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(79, 70, 229, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.25rem; flex-shrink: 0; }
+        .section-details h4 { font-size: 1rem; color: var(--text-main); margin-bottom: 4px; }
+        .section-details p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
 
-    /* 帖子操作栏 & 过滤 */
-    .feed-tools { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-    .search-box { flex: 1; min-width: 250px; display: flex; gap: 8px; }
-    .search-box .modern-input { border-radius: 30px; padding-left: 20px; }
-    .sort-controls select { border-radius: 30px; padding: 10px 20px; background: var(--surface); border: 1px solid var(--border); font-size: 0.9rem; cursor: pointer; outline: none; }
+        .feed-tools { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 250px; display: flex; gap: 8px; }
+        .search-box .modern-input { border-radius: 30px; padding-left: 20px; }
+        .sort-controls select { border-radius: 30px; padding: 10px 20px; background: var(--surface); border: 1px solid var(--border); font-size: 0.9rem; cursor: pointer; outline: none; }
 
-    /* 帖子列表 */
-    .post { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: transform 0.2s; }
-    .post:hover { box-shadow: var(--shadow-md); }
-    .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .post-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; }
-    .post-meta-info { flex: 1; }
-    .post-author { display: block; font-weight: 600; font-size: 0.95rem; color: var(--text-main); }
-    .post-time { font-size: 0.8rem; color: var(--text-muted); }
-    .badge-section { background: rgba(79, 70, 229, 0.1); color: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-    .post-title { font-size: 1.25rem; margin-bottom: 12px; color: var(--text-main); }
-    .post-content { color: #374151; font-size: 0.95rem; line-height: 1.7; margin-bottom: 20px; white-space: pre-wrap; }
-    
-    /* 附件样式 */
-    .post-image { max-width: 100%; max-height: 400px; border-radius: var(--radius-md); margin-top: 12px; border: 1px solid var(--border); }
-    .attachment-box { display: flex; align-items: center; justify-content: space-between; background: var(--secondary); padding: 12px 16px; border-radius: var(--radius-md); margin-top: 16px; }
-    
-    /* 帖子交互按钮 */
-    .post-actions-bar { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px; }
-    .action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; background: transparent; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; cursor: pointer; border-radius: 20px; transition: all 0.2s; }
-    .action-btn:hover { background: var(--secondary); color: var(--primary); }
-    .action-btn svg { width: 18px; height: 18px; }
+        .post { background: var(--surface); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: transform 0.2s; }
+        .post:hover { box-shadow: var(--shadow-md); }
+        .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .post-avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #6366f1); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        .post-meta-info { flex: 1; }
+        .post-author { display: block; font-weight: 600; font-size: 0.95rem; color: var(--text-main); }
+        .post-time { font-size: 0.8rem; color: var(--text-muted); }
+        .badge-section { background: rgba(79, 70, 229, 0.1); color: var(--primary); padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .post-title { font-size: 1.25rem; margin-bottom: 12px; color: var(--text-main); }
+        .post-content { color: #374151; font-size: 0.95rem; line-height: 1.7; margin-bottom: 20px; white-space: pre-wrap; }
+        
+        .post-image { max-width: 100%; max-height: 400px; border-radius: var(--radius-md); margin-top: 12px; border: 1px solid var(--border); }
+        .attachment-box { display: flex; align-items: center; justify-content: space-between; background: var(--secondary); padding: 12px 16px; border-radius: var(--radius-md); margin-top: 16px; }
+        
+        .post-actions-bar { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px; }
+        .action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; background: transparent; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; cursor: pointer; border-radius: 20px; transition: all 0.2s; }
+        .action-btn:hover { background: var(--secondary); color: var(--primary); }
+        .action-btn svg { width: 18px; height: 18px; }
 
-    /* 评论区 */
-    .comment-form-container { margin-top: 20px; background: var(--bg-body); padding: 16px; border-radius: var(--radius-md); }
-    .comments-list { margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
-    .comment-item { display: flex; gap: 12px; background: var(--bg-body); padding: 16px; border-radius: var(--radius-md); }
-    .comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #2dd4bf); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; flex-shrink: 0; }
-    .comment-body { flex: 1; }
-    .comment-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .comment-author { font-weight: 600; font-size: 0.875rem; }
-    .comment-time { font-size: 0.75rem; color: var(--text-muted); }
-    .comment-text { font-size: 0.9rem; color: #4B5563; margin-bottom: 8px; }
-    .comment-like-btn { padding: 4px 8px; font-size: 0.8rem; }
+        .comment-form-container { margin-top: 20px; background: var(--bg-body); padding: 16px; border-radius: var(--radius-md); }
+        .comments-list { margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
+        .comment-item { display: flex; gap: 12px; background: var(--bg-body); padding: 16px; border-radius: var(--radius-md); }
+        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #2dd4bf); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; flex-shrink: 0; }
+        .comment-body { flex: 1; }
+        .comment-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .comment-author { font-weight: 600; font-size: 0.875rem; }
+        .comment-time { font-size: 0.75rem; color: var(--text-muted); }
+        .comment-text { font-size: 0.9rem; color: #4B5563; margin-bottom: 8px; }
+        .comment-like-btn { padding: 4px 8px; font-size: 0.8rem; }
 
-    /* 文件上传美化 */
-    .file-input-wrapper { display: flex; align-items: center; gap: 12px; }
-    .file-input-wrapper input[type=file] { display: none; }
-    .file-input-label { display: inline-block; background: var(--secondary); color: var(--text-main); padding: 10px 20px; border-radius: var(--radius-md); cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: background 0.2s; border: 1px dashed #9CA3AF; }
-    .file-input-label:hover { background: #E5E7EB; border-color: var(--primary); }
-    #image-preview { max-width: 100%; border-radius: var(--radius-md); margin-top: 12px; }
+        .file-input-wrapper { display: flex; align-items: center; gap: 12px; }
+        .file-input-wrapper input[type=file] { display: none; }
+        .file-input-label { display: inline-block; background: var(--secondary); color: var(--text-main); padding: 10px 20px; border-radius: var(--radius-md); cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: background 0.2s; border: 1px dashed #9CA3AF; }
+        .file-input-label:hover { background: #E5E7EB; border-color: var(--primary); }
+        #image-preview { max-width: 100%; border-radius: var(--radius-md); margin-top: 12px; }
 
-    /* 状态 Toast (不再破坏DOM流) */
-    .status { position: fixed; bottom: 24px; right: 24px; padding: 16px 24px; border-radius: var(--radius-md); font-weight: 500; z-index: 9999; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; box-shadow: var(--shadow-lg); max-width: 350px; }
-    .status-success { background-color: var(--success); color: white; }
-    .status-error { background-color: var(--danger); color: white; }
-    @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .status { position: fixed; bottom: 24px; right: 24px; padding: 16px 24px; border-radius: var(--radius-md); font-weight: 500; z-index: 9999; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; box-shadow: var(--shadow-lg); max-width: 350px; }
+        .status-success { background-color: var(--success); color: white; }
+        .status-error { background-color: var(--danger); color: white; }
+        @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-    /* 响应式 */
-    @media (max-width: 992px) {
-        .container { grid-template-columns: 1fr; }
-        .sidebar { order: 2; }
-        .main-feed { order: 1; }
-    }
-</style>
+        @media (max-width: 992px) {
+            .container { grid-template-columns: 1fr; }
+            .sidebar { order: 2; }
+            .main-feed { order: 1; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container placeholder" style="display: none;"></div> <nav class="navbar">
+    <div id="relayer-status" class="relayer-banner">⚙️ 管理员 Relayer 节点运行中：自动打包 1 分钟内的操作上链...</div>
+    
+    <nav class="navbar">
         <div class="nav-container">
             <div class="brand">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
                 畅所欲言
             </div>
             <div id="wallet-status">
+                <div id="finance-info" class="finance-panel">
+                    <span>余额: <span id="user-balance" style="color:var(--success)">0</span> ETH</span>
+                    <span>欠费: <span id="user-debt" style="color:var(--danger)">0</span> ETH</span>
+                    <button id="withdraw-btn" class="btn btn-primary btn-sm" onclick="withdrawBalance()" style="display:none; padding:4px 8px;">提现</button>
+                </div>
                 <span id="wallet-address"></span>
                 <button id="connect-wallet" class="btn btn-primary">连接钱包</button>
             </div>
         </div>
     </nav>
+
     <div class="container main-layout">
         <aside class="sidebar">
             <div class="card">
@@ -156,13 +151,16 @@
                 <div class="form-group">
                     <textarea id="section-description" class="modern-input" placeholder="输入一句话分区描述..." style="min-height: 80px;"></textarea>
                 </div>
-                <button id="create-section" class="btn btn-primary" style="width: 100%;">确认创建</button>
+                <button id="create-section" class="btn btn-primary" style="width: 100%;">确认创建 (0.001 ETH)</button>
             </div>
     
             <div class="card" style="background: transparent; box-shadow: none; border: none; padding: 0;">
-                <div class="card-header" style="border-bottom: none; margin-bottom: 10px;">
-                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                    探索分区
+                <div class="card-header" style="border-bottom: none; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                    <div>
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        探索分区
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="syncLightNodeState(true)">强制同步</button>
                 </div>
                 <div id="section-list" class="section-list"></div>
             </div>
@@ -176,7 +174,7 @@
                 </div>
                 <div class="form-group">
                     <select id="post-section" class="modern-input">
-                        <option value="">请选择发帖分区...</option>
+                        <option value="">请先同步数据或创建分区...</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -197,17 +195,17 @@
                     <img id="image-preview" alt="图片预览" style="display: none;">
                     <div id="text-preview" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
                 </div>
-                <button id="create-post" class="btn btn-primary">立即发布</button>
+                <button id="create-post" class="btn btn-primary">立即发布 (0.001 ETH)</button>
             </div>
     
             <div class="feed-tools">
                 <div class="search-box">
                     <input type="text" id="search-input" class="modern-input" placeholder="搜索帖子标题或内容...">
-                    <button class="btn btn-primary" onclick="searchPosts()">搜索</button>
+                    <button class="btn btn-primary" onclick="renderPosts()">搜索</button>
                     <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
                 </div>
                 <div class="sort-controls">
-                    <select id="sort-by" onchange="loadPosts()">
+                    <select id="sort-by" onchange="renderPosts()">
                         <option value="time-desc">最新发布优先</option>
                         <option value="time-asc">最早发布优先</option>
                         <option value="likes-desc">点赞数最多优先</option>
@@ -216,510 +214,375 @@
                 </div>
             </div>
     
-            <div id="post-list">
-                </div>
+            <div id="post-list"></div>
         </main>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
     <script src="ipfs.js"></script>
     <script>
+
         const abi = [
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"author","type":"address"},{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"cid","type":"string"}],"name":"PostCreated","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"author","type":"address"},{"indexed":false,"internalType":"string","name":"cid","type":"string"}],"name":"CommentCreated","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"postId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"PostLiked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"commentId","type":"uint256"},{"indexed":false,"internalType":"address","name":"user","type":"address"}],"name":"CommentLiked","type":"event"},
-            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"sectionId","type":"uint256"},{"indexed":false,"internalType":"string","name":"name","type":"string"},{"indexed":false,"internalType":"address","name":"creator","type":"address"}],"name":"SectionCreated","type":"event"},
-            {"inputs":[{"internalType":"string","name":"_name","type":"string"},{"internalType":"string","name":"_description","type":"string"}],"name":"createSection","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_sectionId","type":"uint256"},{"internalType":"string","name":"_title","type":"string"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"},{"internalType":"string","name":"_imageCid","type":"string"},{"internalType":"string","name":"_fileName","type":"string"}],"name":"createPost","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"string","name":"_content","type":"string"},{"internalType":"string","name":"_cid","type":"string"}],"name":"createComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"likePost","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"likeComment","outputs":[],"stateMutability":"nonpayable","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPostLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"}],"name":"getCommentLikes","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedPost","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_commentId","type":"uint256"},{"internalType":"address","name":"_user","type":"address"}],"name":"hasUserLikedComment","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"_postId","type":"uint256"}],"name":"getPost","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"title","type":"string"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"string","name":"imageCid","type":"string"},{"internalType":"string","name":"fileName","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"sectionId","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"getAllPostIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"comments","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"postId","type":"uint256"},{"internalType":"address","name":"author","type":"address"},{"internalType":"string","name":"content","type":"string"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"likes","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"sections","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"name","type":"string"},{"internalType":"string","name":"description","type":"string"},{"internalType":"address","name":"creator","type":"address"},{"internalType":"uint256","name":"createdAt","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"postCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"commentCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-            {"inputs":[],"name":"sectionCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+            {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"uint256","name":"packetId","type":"uint256"},{"indexed":false,"internalType":"string","name":"batchCid","type":"string"}],"name":"BatchCommitted","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint8","name":"opType","type":"uint8"},{"indexed":false,"internalType":"string","name":"payloadCid","type":"string"}],"name":"OperationSubmitted","type":"event"},
+            {"inputs":[],"name":"FIXED_FEE","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balances","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"string","name":"_batchCid","type":"string"},{"internalType":"address[]","name":"_users","type":"address[]"},{"internalType":"uint256[]","name":"_actualCosts","type":"uint256[]"}],"name":"commitBatch","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"currentOperations","outputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint8","name":"opType","type":"uint8"},{"internalType":"string","name":"payloadCid","type":"string"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"dataPackets","outputs":[{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"string","name":"cid","type":"string"},{"internalType":"uint256","name":"timestamp","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"debts","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"getCurrentOperations","outputs":[{"components":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint8","name":"opType","type":"uint8"},{"internalType":"string","name":"payloadCid","type":"string"}],"internalType":"struct Forum.Operation[]","name":"","type":"tuple[]"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"lastWindowEnd","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"packetCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"uint8","name":"_opType","type":"uint8"},{"internalType":"string","name":"_payloadCid","type":"string"}],"name":"submitOperation","outputs":[],"stateMutability":"payable","type":"function"},
+            {"inputs":[],"name":"windowDuration","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"withdrawBalance","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
     
-        const contractAddress = "0x142a1ddd434ba273fa9211575ff7a0c872552251";
-        let web3, contract, accounts;
-        let currentSearchKeyword = '';
-        let isConnecting = false;
-        let isWalletConnected = false;
+        const contractAddress = "0x96e90e1bc955512185ac3b7643bbcd00d0fb72ca"; //部署后需要替换
+        const FIXED_FEE = '1000000000000000'; // 0.001 ETH
     
-        // 简短地址辅助函数
+        let web3, contract, accounts;
+        let isRelayerRunning = false;
+        let currentSectionFilter = null;
+        
+        let forumState = { sections: [], posts: [], comments: [], likes: {} };
+    
         function shortenAddress(address) {
             return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : '';
         }
     
         async function connectWallet() {
-            if (!window.ethereum) {
-                showStatus('请安装MetaMask钱包', 'error');
-                return;
-            }
-            if (isConnecting || isWalletConnected) return;
-            isConnecting = true;
+            if (!window.ethereum) return showStatus('请安装MetaMask钱包', 'error');
             try {
                 accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 web3 = new Web3(window.ethereum);
-                const chainId = await web3.eth.getChainId();
-                if (chainId !== 11155111n) {
-                    showStatus('请切换到Sepolia测试网络', 'error');
-                    isConnecting = false;
-                    return;
-                }
                 contract = new web3.eth.Contract(abi, contractAddress);
+                
                 document.getElementById('wallet-address').textContent = shortenAddress(accounts[0]);
                 document.getElementById('connect-wallet').style.display = 'none';
+                document.getElementById('finance-info').style.display = 'flex';
                 showStatus('钱包连接成功', 'success');
-                await loadSections();
-                await loadPosts();
-                isWalletConnected = true;
-            } catch (error) {
-                showStatus('连接钱包失败: ' + error.message, 'error');
-            } finally {
-                isConnecting = false;
-            }
+                
+                await updateFinanceInfo();
+                await syncLightNodeState(false);
+                
+                const owner = await contract.methods.owner().call();
+                if (accounts[0].toLowerCase() === owner.toLowerCase() && !isRelayerRunning) {
+                    startRelayerService();
+                }
+            } catch (error) { showStatus('连接失败: ' + error.message, 'error'); }
+        }
+
+        async function updateFinanceInfo() {
+            if(!contract) return;
+            const balanceWei = await contract.methods.balances(accounts[0]).call();
+            const debtWei = await contract.methods.debts(accounts[0]).call();
+            document.getElementById('user-balance').textContent = web3.utils.fromWei(balanceWei, 'ether');
+            document.getElementById('user-debt').textContent = web3.utils.fromWei(debtWei, 'ether');
+            document.getElementById('withdraw-btn').style.display = balanceWei > 0n ? 'inline-block' : 'none';
+        }
+
+        async function withdrawBalance() {
+            try {
+                showStatus('正在申请提现...', 'success');
+                await contract.methods.withdrawBalance().send({ from: accounts[0] });
+                updateFinanceInfo();
+            } catch(e) { showStatus('提现失败', 'error'); }
         }
     
         function showStatus(message, type) {
             const statusDiv = document.createElement('div');
             statusDiv.className = `status status-${type}`;
             statusDiv.textContent = message;
-            document.body.appendChild(statusDiv); // 更改为附加到 body，不破坏布局
+            document.body.appendChild(statusDiv);
             setTimeout(() => {
                 statusDiv.style.opacity = '0';
                 statusDiv.style.transition = 'opacity 0.3s';
                 setTimeout(() => statusDiv.remove(), 300);
             }, 3000);
         }
-    
-        async function loadSections() {
-            if (!contract) return;
+
+        // ======================= 操作上链逻辑 =======================
+        async function submitOperationToChain(opType, payloadData) {
+            if (!contract) return showStatus('请先连接钱包', 'error');
             try {
-                const sectionCounter = await contract.methods.sectionCounter().call();
-                const sectionList = document.getElementById('section-list');
-                const postSectionSelect = document.getElementById('post-section');
-                sectionList.innerHTML = '';
-                postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
+                showStatus('步骤1: 正在上传内容至 IPFS...', 'success');
+                const payloadCid = await ipfsIntegration.addContent(payloadData);
                 
-                if (sectionCounter == 0) {
-                    sectionList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px 0;">暂无分区，快来创建第一个吧</p>';
-                    return;
-                }
+                const debtWei = await contract.methods.debts(accounts[0]).call();
+                const requiredWei = BigInt(FIXED_FEE) + BigInt(debtWei);
+                const userBalanceWei = await contract.methods.balances(accounts[0]).call();
                 
-                for (let i = 1; i <= sectionCounter; i++) {
-                    const section = await contract.methods.sections(i).call();
-                    const sectionItem = document.createElement('div');
-                    sectionItem.className = 'section-item';
-                    
-                    // 新设计的 HTML
-                    sectionItem.innerHTML = `
-                        <div class="section-icon">${section.name.substring(0,1).toUpperCase()}</div>
-                        <div class="section-details">
-                            <h4>${section.name}</h4>
-                            <p>${section.description}</p>
-                        </div>
-                    `;
-                    sectionItem.addEventListener('click', function() {
-                        loadPostsBySection(section.id);
-                        document.querySelectorAll('.section-item').forEach(item => {
-                            item.style.borderColor = 'var(--border)';
-                            item.style.background = 'var(--surface)';
-                        });
-                        this.style.borderColor = 'var(--primary)';
-                        this.style.background = '#F8FAFC';
-                    });
-                    sectionList.appendChild(sectionItem);
-                    
-                    const option = document.createElement('option');
-                    option.value = section.id;
-                    option.textContent = section.name;
-                    postSectionSelect.appendChild(option);
-                }
-            } catch (error) {
-                showStatus('加载分区失败', 'error');
-            }
-        }
-    
-        async function loadPosts() {
-            loadPostsBySection(0);
-        }
-    
-        async function loadPostsBySection(sectionId) {
-            if (!contract) return;
-            const postList = document.getElementById('post-list');
-            
-            try {
-                postList.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);"><svg style="animation: spin 1s linear infinite;" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg><p style="margin-top:12px;">正在加载星球电波...</p></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>';
-                const sectionIdNum = parseInt(sectionId);
-                const sortBy = document.getElementById('sort-by').value;
-                const postIds = await contract.methods.getAllPostIds().call();
-                
-                if (postIds.length === 0) {
-                    postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">这片宇宙空空如也，发布第一条动态吧</div>';
-                    return;
-                }
-                
-                postList.innerHTML = '';
-                const posts = [];
-                
-                for (const postId of postIds) {
-                    const post = await contract.methods.getPost(postId).call();
-                    const postSectionId = Number(post.sectionId);
-                    const postTimestamp = Number(post.timestamp);
-                    const postLikes = Number(post.likes);
-                    const postIdNum = Number(post.id);
-                    
-                    if (sectionIdNum != 0 && postSectionId != sectionIdNum) continue;
-                    
-                    if (currentSearchKeyword) {
-                        const keyword = currentSearchKeyword.toLowerCase();
-                        if (!post.title.toLowerCase().includes(keyword) && !post.content.toLowerCase().includes(keyword)) continue;
-                    }
-                    
-                    const section = await contract.methods.sections(post.sectionId).call();
-                    posts.push({ id: postIdNum, author: post.author, title: post.title, content: post.content, cid: post.cid, imageCid: post.imageCid, fileName: post.fileName, timestamp: postTimestamp, sectionId: postSectionId, likes: postLikes, sectionName: section.name });
-                }
-                
-                if (posts.length === 0) {
-                    postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">没有找到符合条件的帖子</div>';
-                    return;
-                }
-                
-                posts.sort((a, b) => {
-                    switch (sortBy) {
-                        case 'time-desc': return b.timestamp - a.timestamp;
-                        case 'time-asc': return a.timestamp - b.timestamp;
-                        case 'likes-desc': return b.likes - a.likes;
-                        case 'likes-asc': return a.likes - b.likes;
-                        default: return b.timestamp - a.timestamp;
-                    }
+                let valueToSend = requiredWei - BigInt(userBalanceWei);
+                if (valueToSend < 0n) valueToSend = 0n;
+
+                showStatus(`步骤2: 正在上链, 需支付 ${web3.utils.fromWei(valueToSend.toString(), 'ether')} ETH`, 'success');
+                await contract.methods.submitOperation(opType, payloadCid).send({
+                    from: accounts[0], value: valueToSend.toString()
                 });
-                
-                for (const post of posts) {
-                    const postItem = document.createElement('div');
-                    postItem.className = 'post';
+                showStatus('发布成功！请等待1分钟打包上链。', 'success');
+                updateFinanceInfo();
+            } catch (e) { showStatus('操作失败: ' + e.message, 'error'); }
+        }
+    
+        // ======================= 轻节点同步逻辑 =======================
+        async function syncLightNodeState(force = false) {
+            if(!contract) return;
+            let lastSynced = force ? 0 : (parseInt(localStorage.getItem('lastSyncedPacket')) || 0);
+            if (force) forumState = { sections: [], posts: [], comments: [], likes: {} };
+
+            try {
+                const packetCounter = parseInt(await contract.methods.packetCounter().call());
+                for (let i = lastSynced + 1; i <= packetCounter; i++) {
+                    const packet = await contract.methods.dataPackets(i).call();
+                    const batchJsonStr = await ipfsIntegration.getContent(packet.cid);
+                    const operations = JSON.parse(batchJsonStr);
+                    if(operations.error) continue; // 跳过网络错误导致的数据包
                     
-                    let attachmentHtml = '';
-                    if (post.imageCid && post.imageCid !== '') {
-                        const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
-                        const isText = post.fileName && post.fileName.endsWith('.txt');
-                        
-                        if (isImage) {
-                            attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" alt="帖子图片" class="post-image" onerror="this.style.display='none'">`;
-                        } else {
-                            // 附件下载区美化
-                            let icon = isText ? '📄' : '📎';
-                            let fName = post.fileName || '未知文件';
-                            attachmentHtml = `
-                                <div class="attachment-box">
-                                    <span>${icon} <span style="font-weight: 500;">${fName}</span></span>
-                                    <button onclick="downloadFile('${post.imageCid}', '${fName}')" class="btn btn-primary btn-sm">下载附件</button>
-                                </div>
-                            `;
+                    for(let op of operations) {
+                        const data = op.data;
+                        if (op.opType == 1) forumState.sections.push({ ...data, creator: op.user });
+                        if (op.opType == 2) forumState.posts.push({ ...data, author: op.user });
+                        if (op.opType == 3) forumState.comments.push({ ...data, author: op.user });
+                        if (op.opType == 4 || op.opType == 5) {
+                            if (!forumState.likes[data.targetId]) forumState.likes[data.targetId] = [];
+                            if (!forumState.likes[data.targetId].includes(op.user)) forumState.likes[data.targetId].push(op.user);
                         }
                     }
-                    
-                    const postIdStr = String(post.id);
-                    // 全新设计的帖子内层 HTML
-                    postItem.innerHTML = `
-                        <div class="post-header">
-                            <div class="post-avatar">${post.author.substring(2,4).toUpperCase()}</div>
-                            <div class="post-meta-info">
-                                <span class="post-author" title="${post.author}">${shortenAddress(post.author)}</span>
-                                <span class="post-time">${new Date(post.timestamp * 1000).toLocaleString()}</span>
-                            </div>
-                            <span class="badge-section">${post.sectionName}</span>
-                        </div>
-                        <h3 class="post-title">${post.title}</h3>
-                        <div class="post-content">${post.content}</div>
-                        ${attachmentHtml}
-                        
-                        <div class="post-actions-bar">
-                            <button class="action-btn" onclick="likePost(${postIdStr})">
-                                <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                <span>点赞 (${post.likes})</span>
-                            </button>
-                            <button class="action-btn" onclick="toggleCommentForm('${postIdStr}')">
-                                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                <span>评论</span>
-                            </button>
-                        </div>
-                        
-                        <div id="comment-form-${postIdStr}" class="comment-form-container" style="display: none;">
-                            <textarea id="comment-content-${postIdStr}" class="modern-input" placeholder="输入你想说的内容..." style="min-height: 70px; margin-bottom: 12px;"></textarea>
-                            <button class="btn btn-primary btn-sm" id="btn-submit-comment-${postIdStr}">发送评论</button>
-                        </div>
-                        
-                        <div id="comments-${postIdStr}" class="comments-list"></div>
-                    `;
-                    postList.appendChild(postItem);
-                    
-                    const submitBtn = document.getElementById(`btn-submit-comment-${postIdStr}`);
-                    if (submitBtn) {
-                        submitBtn.addEventListener('click', () => createComment(postIdStr));
-                    }
-                    
-                    loadComments(post.id);
                 }
-            } catch (error) {
-                postList.innerHTML = '<p style="text-align: center; color: var(--danger); padding: 20px;">加载帖子失败，请刷新重试</p>';
-            }
-        }
-    
-        function searchPosts() {
-            currentSearchKeyword = document.getElementById('search-input').value.trim();
-            loadPosts();
-        }
-    
-        function clearSearch() {
-            document.getElementById('search-input').value = '';
-            currentSearchKeyword = '';
-            loadPosts();
-        }
-    
-        async function downloadFile(cid, fileName) {
-            try {
-                showStatus('正在准备下载...', 'success');
-                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
                 
-                const response = await fetch(url, { method: 'GET', mode: 'cors' });
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = fileName || 'download.txt';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(downloadUrl);
-                    showStatus('下载已开始', 'success');
-                    return;
-                }
-            } catch (error) {
-                window.open(`https://gateway.pinata.cloud/ipfs/${cid}`, '_blank');
-            }
+                localStorage.setItem('forumState', JSON.stringify(forumState));
+                localStorage.setItem('lastSyncedPacket', packetCounter);
+                
+                renderSections();
+                renderPosts();
+                if(packetCounter > lastSynced) showStatus('状态同步完成！', 'success');
+            } catch (e) { console.error(e); }
         }
-    
-        function previewFile(input) {
-            const fileName = document.getElementById('file-name');
-            const imagePreview = document.getElementById('image-preview');
-            const textPreview = document.getElementById('text-preview');
+
+        // ======================= 渲染逻辑 =======================
+        function renderSections() {
+            const list = document.getElementById('section-list');
+            const select = document.getElementById('post-section');
+            list.innerHTML = ''; 
+            select.innerHTML = '<option value="">请选择发帖分区...</option>';
             
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
-                const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
-                
-                if (!isImage && !isText) {
-                    showStatus('请选择JPG图片或TXT文本文件', 'error');
-                    input.value = '';
-                    return;
-                }
-                
-                if (file.size > 5 * 1024 * 1024) {
-                    showStatus('文件大小不能超过5MB', 'error');
-                    input.value = '';
-                    return;
-                }
-                
-                fileName.textContent = file.name;
-                
-                if (isImage) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; textPreview.style.display = 'none'; };
-                    reader.readAsDataURL(file);
-                } else if (isText) {
-                    file.text().then(text => { textPreview.textContent = text; textPreview.style.display = 'block'; imagePreview.style.display = 'none'; });
-                }
-            } else {
-                fileName.textContent = '';
-                imagePreview.style.display = 'none';
-                textPreview.style.display = 'none';
+            if(forumState.sections.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #999; padding: 20px 0;">暂无分区，快来创建第一个吧</p>';
+                return;
             }
+
+            forumState.sections.forEach(sec => {
+                const div = document.createElement('div');
+                div.className = 'section-item';
+                div.innerHTML = `
+                    <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
+                    <div class="section-details">
+                        <h4>${sec.name}</h4>
+                        <p>${sec.description}</p>
+                    </div>`;
+                div.onclick = () => { 
+                    currentSectionFilter = sec.id; 
+                    renderPosts(); 
+                    document.querySelectorAll('.section-item').forEach(item => { item.style.borderColor = 'var(--border)'; item.style.background = 'var(--surface)'; });
+                    div.style.borderColor = 'var(--primary)'; div.style.background = '#F8FAFC';
+                };
+                list.appendChild(div);
+
+                const opt = document.createElement('option');
+                opt.value = sec.id; opt.textContent = sec.name;
+                select.appendChild(opt);
+            });
         }
-    
-        async function loadComments(postId) {
-            if (!contract) return;
-            try {
-                const commentCounter = await contract.methods.commentCounter().call();
-                const commentsDiv = document.getElementById(`comments-${postId}`);
-                commentsDiv.innerHTML = '';
+
+        window.renderPosts = function() {
+            const list = document.getElementById('post-list');
+            const keyword = document.getElementById('search-input').value.toLowerCase();
+            const sortBy = document.getElementById('sort-by').value;
+            list.innerHTML = '';
+
+            let filtered = forumState.posts;
+            if (currentSectionFilter) filtered = filtered.filter(p => p.sectionId === currentSectionFilter);
+            if (keyword) filtered = filtered.filter(p => p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword));
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">这片宇宙空空如也，发布第一条动态吧</div>';
+                return;
+            }
+
+            filtered.sort((a,b) => {
+                const aLikes = forumState.likes[a.id]?.length || 0;
+                const bLikes = forumState.likes[b.id]?.length || 0;
+                switch(sortBy) {
+                    case 'time-desc': return b.timestamp - a.timestamp;
+                    case 'time-asc': return a.timestamp - b.timestamp;
+                    case 'likes-desc': return bLikes - aLikes;
+                    case 'likes-asc': return aLikes - bLikes;
+                }
+            });
+
+            filtered.forEach(post => {
+                const secName = forumState.sections.find(s => s.id === post.sectionId)?.name || '未知分区';
+                const postLikes = forumState.likes[post.id]?.length || 0;
                 
-                for (let i = 1; i <= commentCounter; i++) {
-                    const comment = await contract.methods.comments(i).call();
-                    if (Number(comment.postId) === Number(postId)) {
-                        const commentItem = document.createElement('div');
-                        commentItem.className = 'comment-item';
-                        // 全新评论 UI
-                        commentItem.innerHTML = `
-                            <div class="comment-avatar">${comment.author.substring(2,4).toUpperCase()}</div>
+                let attachmentHtml = '';
+                if (post.imageCid) {
+                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                    if (isImage) attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image" onerror="this.style.display='none'">`;
+                    else attachmentHtml = `<div class="attachment-box"><span>📎 <span style="font-weight: 500;">{post.imageCid}', '${post.fileName}')" class="btn btn-primary btn-sm">下载附件</button></div>`;                }
+
+                let commentsHtml = '';
+                forumState.comments.filter(c => c.postId === post.id).forEach(c => {
+                    const cLikes = forumState.likes[c.id]?.length || 0;
+                    commentsHtml += `
+                        <div class="comment-item">
+                            <div class="comment-avatar">${c.author.substring(2,4).toUpperCase()}</div>
                             <div class="comment-body">
                                 <div class="comment-header">
-                                    <span class="comment-author" title="${comment.author}">${shortenAddress(comment.author)}</span>
-                                    <span class="comment-time">${new Date(Number(comment.timestamp) * 1000).toLocaleString()}</span>
+                                    <span class="comment-author" title="{shortenAddress(c.author)}</span>                                    <span class="comment-time">${new Date(c.timestamp).toLocaleString()}</span>
                                 </div>
-                                <div class="comment-text">${comment.content}</div>
-                                <button class="action-btn comment-like-btn" onclick="likeComment(${Number(comment.id)})" style="padding:0; height:auto;">
+                                <div class="comment-text">${c.content}</div>
+                                <button class="action-btn comment-like-btn" onclick="likeItem('${c.id}', 5)" style="padding:0; height:auto;">
                                     <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                    ${Number(comment.likes)}
+                                    ${cLikes}
                                 </button>
                             </div>
-                        `;
-                        commentsDiv.appendChild(commentItem);
-                    }
-                }
-            } catch (error) {
-                showStatus('加载评论失败', 'error');
-            }
+                        </div>`;
+                });
+
+                const div = document.createElement('div');
+                div.className = 'post';
+                div.innerHTML = `
+                    <div class="post-header">
+                        <div class="post-avatar">${post.author.substring(2,4).toUpperCase()}</div>
+                        <div class="post-meta-info">
+                            <span class="post-author" title="{shortenAddress(post.author)}</span>                            <span class="post-time">${new Date(post.timestamp).toLocaleString()}</span>
+                        </div>
+                        <span class="badge-section">${secName}</span>
+                    </div>
+                    <h3 class="post-title">${post.title}</h3>
+                    <div class="post-content">${post.content}</div>
+                    ${attachmentHtml}
+                    
+                    <div class="post-actions-bar">
+                        <button class="action-btn" onclick="likeItem('${post.id}', 4)">
+                            <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
+                            <span>点赞 (${postLikes})</span>
+                        </button>
+                        <button class="action-btn" onclick="document.getElementById('comment-form-${post.id}').style.display='block'">
+                            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
+                            <span>评论</span>
+                        </button>
+                    </div>
+                    
+                    <div id="comment-form-${post.id}" class="comment-form-container" style="display: none;">
+                        <textarea id="comment-content-${post.id}" class="modern-input" placeholder="输入你想说的内容..." style="min-height: 70px; margin-bottom: 12px;"></textarea>
+                        <button class="btn btn-primary btn-sm" onclick="createComment('${post.id}')">发送评论</button>
+                    </div>
+                    
+                    <div class="comments-list">${commentsHtml}</div>
+                `;
+                list.appendChild(div);
+            });
         }
     
-        function toggleCommentForm(postId) {
-            const form = document.getElementById(`comment-form-${postId}`);
-            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        }
-    
-        async function createSection() {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
+        // ======================= 表单提交事件 =======================
+        document.getElementById('create-section').addEventListener('click', () => {
             const name = document.getElementById('section-name').value;
-            const description = document.getElementById('section-description').value;
-            if (!name || !description) { showStatus('请填写分区名称和描述', 'error'); return; }
-            try {
-                await contract.methods.createSection(name, description).send({ from: accounts[0] });
-                showStatus('分区创建成功', 'success');
-                document.getElementById('section-name').value = '';
-                document.getElementById('section-description').value = '';
-                loadSections();
-            } catch (error) { showStatus('创建分区失败', 'error'); }
-        }
+            const desc = document.getElementById('section-description').value;
+            if(!name) return showStatus('请输入分区名','error');
+            submitOperationToChain(1, { id: Date.now().toString(), name, description: desc, timestamp: Date.now() });
+        });
     
-        async function createPost() {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
+        document.getElementById('create-post').addEventListener('click', async () => {
             const sectionId = document.getElementById('post-section').value;
             const title = document.getElementById('post-title').value;
             const content = document.getElementById('post-content').value;
             const imageFile = document.getElementById('post-image').files[0];
             
-            if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
+            if(!sectionId || !title || !content) return showStatus('请填写完整信息', 'error');
             
-            try {
-                showStatus('正在上传内容到IPFS...', 'success');
-                const cid = await ipfsIntegration.addContent(content);
-                
-                let imageCid = '', fileName = '';
-                if (imageFile) {
-                    showStatus('正在上传文件到IPFS...', 'success');
-                    imageCid = await ipfsIntegration.addFile(imageFile);
-                    fileName = imageFile.name;
+            let imageCid = '', fileName = '';
+            if (imageFile) {
+                showStatus('正在上传附件...', 'success');
+                imageCid = await ipfsIntegration.addFile(imageFile);
+                fileName = imageFile.name;
+            }
+            submitOperationToChain(2, { id: Date.now().toString(), sectionId, title, content, imageCid, fileName, timestamp: Date.now() });
+        });
+
+        window.createComment = function(postId) {
+            const content = document.getElementById(`comment-content-${postId}`).value;
+            if(!content) return showStatus('评论不能为空', 'error');
+            submitOperationToChain(3, { id: Date.now().toString(), postId, content, timestamp: Date.now() });
+        };
+
+        window.likeItem = function(targetId, opType) {
+            submitOperationToChain(opType, { targetId, timestamp: Date.now() });
+        };
+        
+        // ======================= Relayer 打包服务 =======================
+        function startRelayerService() {
+            isRelayerRunning = true;
+            document.getElementById('relayer-status').style.display = 'block';
+            
+            setInterval(async () => {
+                try {
+                    const lastEnd = await contract.methods.lastWindowEnd().call();
+                    const nowSec = Math.floor(Date.now() / 1000);
+                    
+                    if (nowSec >= Number(lastEnd) + 65) {
+                        const ops = await contract.methods.getCurrentOperations().call();
+                        if (ops.length > 0) {
+                            let batchedData = [];
+                            let users = [];
+                            let actualCosts = [];
+
+                            for(let op of ops) {
+                                const payloadStr = await ipfsIntegration.getContent(op.payloadCid);
+                                const data = JSON.parse(payloadStr);
+                                batchedData.push({ user: op.user, opType: op.opType, data: data });
+                                users.push(op.user);
+                                
+                                // 模拟差异计费
+                                actualCosts.push(payloadStr.length > 500 ? web3.utils.toWei('0.0012', 'ether') : web3.utils.toWei('0.0005', 'ether'));
+                            }
+
+                            const batchCid = await ipfsIntegration.addContent(batchedData);
+                            await contract.methods.commitBatch(batchCid, users, actualCosts).send({ from: accounts[0] });
+                            syncLightNodeState();
+                        }
+                    }
+                } catch (error) {}
+            }, 15000);
+        }
+        
+        function clearSearch() { document.getElementById('search-input').value = ''; currentSearchKeyword = ''; renderPosts(); }
+        async function downloadFile(cid, fileName) { window.open(`https://gateway.pinata.cloud/ipfs/${cid}`, '_blank'); }
+        function previewFile(input) {
+            const fileName = document.getElementById('file-name');
+            const imagePreview = document.getElementById('image-preview');
+            const textPreview = document.getElementById('text-preview');
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                fileName.textContent = file.name;
+                if (file.type.match('image.*')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; textPreview.style.display = 'none'; };
+                    reader.readAsDataURL(file);
                 }
-                
-                showStatus('正在提交到区块链...', 'success');
-                await contract.methods.createPost(sectionId, title, content, cid, imageCid, fileName).send({ from: accounts[0] });
-                
-                showStatus('帖子发布成功', 'success');
-                document.getElementById('post-section').value = '';
-                document.getElementById('post-title').value = '';
-                document.getElementById('post-content').value = '';
-                document.getElementById('post-image').value = '';
-                document.getElementById('file-name').textContent = '';
-                document.getElementById('image-preview').style.display = 'none';
-                document.getElementById('text-preview').style.display = 'none';
-                await loadPosts();
-            } catch (error) { showStatus('发布帖子失败', 'error'); }
-        }
-    
-        async function createComment(postId) {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            const postIdNum = Number(postId);
-            const contentElement = document.getElementById(`comment-content-${postIdNum}`);
-            
-            if (!contentElement) { showStatus('系统错误', 'error'); return; }
-            
-            const content = contentElement.value;
-            if (!content || content.trim() === '') { showStatus('请填写评论内容', 'error'); return; }
-            
-            try {
-                showStatus('正在上传评论到IPFS...', 'success');
-                const cid = await ipfsIntegration.addContent(content);
-                showStatus('正在提交评论...', 'success');
-                await contract.methods.createComment(postIdNum, content, cid).send({ from: accounts[0], gas: 500000 });
-                showStatus('评论发布成功', 'success');
-                contentElement.value = '';
-                document.getElementById(`comment-form-${postIdNum}`).style.display = 'none';
-                loadComments(postIdNum);
-            } catch (error) { showStatus('发布评论失败', 'error'); }
-        }
-    
-        async function likePost(postId) {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            try {
-                const hasLiked = await contract.methods.hasUserLikedPost(postId, accounts[0]).call();
-                if (hasLiked) { showStatus('您已经点赞过该帖子', 'error'); return; }
-                await contract.methods.likePost(postId).send({ from: accounts[0] });
-                showStatus('点赞成功', 'success');
-                loadPosts();
-            } catch (error) { showStatus('点赞失败', 'error'); }
-        }
-    
-        async function likeComment(commentId) {
-            if (!contract || !accounts) { showStatus('请先连接钱包', 'error'); return; }
-            try {
-                const hasLiked = await contract.methods.hasUserLikedComment(commentId, accounts[0]).call();
-                if (hasLiked) { showStatus('您已经点赞过该评论', 'error'); return; }
-                await contract.methods.likeComment(commentId).send({ from: accounts[0] });
-                showStatus('点赞成功', 'success');
-                const comment = await contract.methods.comments(commentId).call();
-                loadComments(comment.postId);
-            } catch (error) { showStatus('点赞失败', 'error'); }
+            }
         }
     
         document.getElementById('connect-wallet').addEventListener('click', connectWallet);
-        document.getElementById('create-section').addEventListener('click', createSection);
-        document.getElementById('create-post').addEventListener('click', createPost);
-    
-        window.toggleCommentForm = toggleCommentForm;
-        window.createComment = createComment;
-        window.likePost = likePost;
-        window.likeComment = likeComment;
-        window.loadPostsBySection = loadPostsBySection;
-        window.searchPosts = searchPosts;
-        window.clearSearch = clearSearch;
-        window.previewFile = previewFile;
-        window.downloadFile = downloadFile;
-    
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
-            if (window.ethereum) {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts.length > 0) await connectWallet();
-                } catch (e) {}
-            }
+            const local = localStorage.getItem('forumState');
+            if (local) { forumState = JSON.parse(local); renderSections(); renderPosts(); }
         };
-    
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (newAccounts) => {
-                if (newAccounts.length === 0) {
-                    document.getElementById('wallet-address').textContent = '';
-                    document.getElementById('connect-wallet').style.display = 'inline-flex';
-                    contract = null;
-                    isWalletConnected = false;
-                    showStatus('钱包已断开连接', 'error');
-                } else if (!isWalletConnected) {
-                    connectWallet();
-                }
-            });
-            window.ethereum.on('chainChanged', () => window.location.reload());
-        }
     </script>
 </body>
 </html>
