@@ -388,12 +388,26 @@
         }
 
         window.createComment = async function(postId) {
-            const contentBox = document.getElementById(`comment-content-${postId}`);
-            const content = contentBox.value;
-            if (!content) { showStatus('评论不能为空', 'error'); return; }
+            try {
+                const contentBox = document.getElementById(`comment-content-${postId}`);
+                if (!contentBox) { showStatus('系统错误：找不到评论输入框', 'error'); return; }
+                
+                const content = contentBox.value.trim();
+                if (!content) { showStatus('评论不能为空', 'error'); return; }
 
-            const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
-            await signAndAddToMempool('create_comment', data);
+                showStatus('正在上传评论到 IPFS...', 'success');
+                const cid = await ipfsIntegration.addContent(content);
+                
+                const data = { id: generateId(), postId, author: accounts[0], content, cid, timestamp: Date.now() };
+                await signAndAddToMempool('create_comment', data);
+                
+                contentBox.value = '';
+                const form = document.getElementById(`comment-form-${postId}`);
+                if (form) form.style.display = 'none';
+                showStatus('评论已提交到打包队列', 'success');
+            } catch (error) {
+                showStatus('发布评论失败: ' + error.message, 'error');
+            }
         }
 
         window.likeEntity = async function(targetId) {
