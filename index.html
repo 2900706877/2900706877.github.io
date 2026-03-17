@@ -687,9 +687,14 @@
             } catch (error) { showStatus('点赞失败', 'error'); }
         }
     
-        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
-        document.getElementById('create-section').addEventListener('click', createSection);
-        document.getElementById('create-post').addEventListener('click', createPost);
+        const connectWalletBtn = document.getElementById('connect-wallet');
+        if (connectWalletBtn) connectWalletBtn.addEventListener('click', connectWallet);
+        
+        const createSectionBtn = document.getElementById('create-section');
+        if (createSectionBtn) createSectionBtn.addEventListener('click', createSection);
+        
+        const createPostBtn = document.getElementById('create-post');
+        if (createPostBtn) createPostBtn.addEventListener('click', createPost);
     
         window.toggleCommentForm = toggleCommentForm;
         window.createComment = createComment;
