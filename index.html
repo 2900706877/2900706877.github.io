@@ -224,7 +224,7 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
     <script src="ipfs.js"></script>
     <script>
-        //每次部署后记得更新
+        // 【重要】替换为你部署的 ForumRollup 合约地址
         const contractAddress = "0x06cc0f99b580E6dbB3266Fb6E8035994Ae6483a7"; 
         
         const abi = [
@@ -234,7 +234,7 @@
             {"inputs":[],"name":"packetCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"string","name":"_cid","type":"string"},{"internalType":"bytes32","name":"_rootHash","type":"bytes32"},{"internalType":"uint256","name":"_operationCount","type":"uint256"}],"name":"submitBatch","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
-    
+
         let web3, contract, accounts;
         
         // 核心状态机与新增的过滤状态
@@ -333,7 +333,10 @@
 
         // --- 3. 业务操作 ---
         async function signAndAddToMempool(type, data) {
-            if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
+            if (!accounts || !accounts[0]) { 
+                showStatus('请先连接钱包', 'error'); 
+                throw new Error('未连接钱包'); 
+            }
             const message = JSON.stringify(data);
             showStatus('请在钱包中签名确认 (免费)...', 'success');
             
@@ -345,15 +348,16 @@
                 showStatus('操作已记录，等待打包上链', 'success');
                 renderApp(); 
             } catch (error) {
-                showStatus('用户取消了签名', 'error');
+                showStatus('签名已取消或失败', 'error');
                 throw error;
             }
         }
 
-        async function createSection() {
-            const name = document.getElementById('section-name').value;
-            const desc = document.getElementById('section-description').value;
-            if (!name || !desc) { showStatus('请填写完整', 'error'); return; }
+        window.createSection = async function() {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
+            const name = document.getElementById('section-name').value.trim();
+            const desc = document.getElementById('section-description').value.trim();
+            if (!name || !desc) { showStatus('请填写完整的分区信息', 'error'); return; }
             
             const data = { id: generateId(), name, description: desc, creator: accounts[0] };
             await signAndAddToMempool('create_section', data);
@@ -362,13 +366,14 @@
             document.getElementById('section-description').value = '';
         }
 
-        async function createPost() {
+        window.createPost = async function() {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
             const sectionId = document.getElementById('post-section').value;
-            const title = document.getElementById('post-title').value;
-            const content = document.getElementById('post-content').value;
+            const title = document.getElementById('post-title').value.trim();
+            const content = document.getElementById('post-content').value.trim();
             const imageFile = document.getElementById('post-image').files[0];
             
-            if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
+            if (!sectionId || !title || !content) { showStatus('请选择分区并填写完整标题和内容', 'error'); return; }
             
             let imageCid = '', fileName = '';
             if (imageFile) {
@@ -385,24 +390,36 @@
             document.getElementById('post-image').value = '';
             document.getElementById('file-name').textContent = '';
             document.getElementById('image-preview').style.display = 'none';
+            document.getElementById('text-preview').style.display = 'none';
         }
 
+        // 修复加强版：评论功能
         window.createComment = async function(postId) {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
+            
             const contentBox = document.getElementById(`comment-content-${postId}`);
-            const content = contentBox.value;
-            if (!content) { showStatus('评论不能为空', 'error'); return; }
+            const content = contentBox.value.trim(); // 防止只输入空格
+            
+            if (!content) { showStatus('评论内容不能为空', 'error'); return; }
 
             const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
-            await signAndAddToMempool('create_comment', data);
+            
+            try {
+                await signAndAddToMempool('create_comment', data);
+                contentBox.value = ''; // 发送成功后清空输入框
+            } catch (error) {
+                console.error('评论失败:', error);
+            }
         }
 
         window.likeEntity = async function(targetId) {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
             const data = { targetId, user: accounts[0], timestamp: Date.now() };
             await signAndAddToMempool('like', data);
         }
 
         // --- 4. Relayer 打包上链 ---
-        async function submitBatchToChain() {
+        window.submitBatchToChain = async function() {
             if (mempool.length === 0) { showStatus('内存池为空，没有需要打包的数据', 'error'); return; }
             if (!contract) { showStatus('请连接钱包', 'error'); return; }
 
@@ -445,31 +462,37 @@
         };
 
         // --- 6. 前端视图渲染 ---
-        function renderApp() {
+        window.renderApp = function() {
             let currentState = JSON.parse(JSON.stringify(appState)); 
             for (const op of mempool) { applyOperationToState(currentState, op); }
 
             // 渲染左侧分区 (包含“全部分区”选项)
             const sectionList = document.getElementById('section-list');
             const postSectionSelect = document.getElementById('post-section');
-            sectionList.innerHTML = '';
-            postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
+            if(sectionList) sectionList.innerHTML = '';
+            if(postSectionSelect) postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
             
             const isAllActive = currentSectionFilter === '' ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
-            sectionList.innerHTML += `
-                <div class="section-item" ${isAllActive} onclick="filterBySection('')">
-                    <div class="section-icon">🌐</div>
-                    <div class="section-details"><h4>全部分区</h4><p>查看所有星球的电波</p></div>
-                </div>`;
+            if(sectionList) {
+                sectionList.innerHTML += `
+                    <div class="section-item" ${isAllActive} onclick="filterBySection('')">
+                        <div class="section-icon">🌐</div>
+                        <div class="section-details"><h4>全部分区</h4><p>查看所有星球的电波</p></div>
+                    </div>`;
+            }
 
             currentState.sections.forEach(sec => {
                 const isActive = currentSectionFilter === sec.id ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
-                sectionList.innerHTML += `
-                    <div class="section-item" ${isActive} onclick="filterBySection('${sec.id}')">
-                        <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
-                        <div class="section-details"><h4>${sec.name}</h4><p>${sec.description}</p></div>
-                    </div>`;
-                postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
+                if(sectionList) {
+                    sectionList.innerHTML += `
+                        <div class="section-item" ${isActive} onclick="filterBySection('${sec.id}')">
+                            <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
+                            <div class="section-details"><h4>${sec.name}</h4><p>${sec.description}</p></div>
+                        </div>`;
+                }
+                if(postSectionSelect) {
+                    postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
+                }
             });
 
             // 获取过滤和排序设置
@@ -481,7 +504,8 @@
             }
 
             // 2. 执行关键词过滤
-            const keyword = document.getElementById('search-input').value.toLowerCase().trim();
+            const searchInput = document.getElementById('search-input');
+            const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
             if (keyword) {
                 filteredPosts = filteredPosts.filter(post => 
                     post.title.toLowerCase().includes(keyword) || post.content.toLowerCase().includes(keyword)
@@ -489,7 +513,8 @@
             }
 
             // 3. 执行排序
-            const sortBy = document.getElementById('sort-by').value;
+            const sortByElement = document.getElementById('sort-by');
+            const sortBy = sortByElement ? sortByElement.value : 'time-desc';
             filteredPosts.sort((a, b) => {
                 const likesA = currentState.likes[a.id] ? currentState.likes[a.id].length : 0;
                 const likesB = currentState.likes[b.id] ? currentState.likes[b.id].length : 0;
@@ -504,6 +529,7 @@
 
             // 渲染帖子列表
             const postList = document.getElementById('post-list');
+            if(!postList) return;
             postList.innerHTML = '';
             
             if (filteredPosts.length === 0) {
@@ -518,7 +544,7 @@
                 
                 let attachmentHtml = '';
                 if (post.imageCid) {
-                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     if (isImage) {
                         attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
                     } else {
@@ -529,6 +555,9 @@
                             </div>`;
                     }
                 }
+
+                // 计算当前帖子的评论
+                const postComments = currentState.comments.filter(c => c.postId === post.id).sort((a, b) => a.timestamp - b.timestamp);
 
                 const postHtml = `
                     <div class="post">
@@ -551,7 +580,7 @@
                             </button>
                             <button class="action-btn" onclick="toggleCommentForm('${post.id}')">
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                <span>评论</span>
+                                <span>评论 (${postComments.length})</span>
                             </button>
                         </div>
                         
@@ -561,7 +590,7 @@
                         </div>
                         
                         <div class="comments-list">
-                            ${currentState.comments.filter(c => c.postId === post.id).sort((a, b) => a.timestamp - b.timestamp).map(c => `
+                            ${postComments.map(c => `
                                 <div class="comment-item">
                                     <div class="comment-avatar">${c.author.substring(2,4).toUpperCase()}</div>
                                     <div class="comment-body">
@@ -584,23 +613,29 @@
             });
         }
 
-        function previewFile(input) {
+        window.previewFile = function(input) {
             const fileName = document.getElementById('file-name');
             const imagePreview = document.getElementById('image-preview');
             const textPreview = document.getElementById('text-preview');
             
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
+                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg') || file.type.match('image/png');
                 const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
-                fileName.textContent = file.name;
+                if(fileName) fileName.textContent = file.name;
                 
                 if (isImage) {
                     const reader = new FileReader();
-                    reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; textPreview.style.display = 'none'; };
+                    reader.onload = (e) => { 
+                        if(imagePreview) { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; }
+                        if(textPreview) textPreview.style.display = 'none'; 
+                    };
                     reader.readAsDataURL(file);
                 } else if (isText) {
-                    file.text().then(text => { textPreview.textContent = text; textPreview.style.display = 'block'; imagePreview.style.display = 'none'; });
+                    file.text().then(text => { 
+                        if(textPreview) { textPreview.textContent = text; textPreview.style.display = 'block'; }
+                        if(imagePreview) imagePreview.style.display = 'none'; 
+                    });
                 }
             }
         }
@@ -616,7 +651,10 @@
                 window.ethereum.on('chainChanged', () => window.location.reload());
             }
         };
-        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+        
+        const connectWalletBtn = document.getElementById('connect-wallet');
+        if(connectWalletBtn) connectWalletBtn.addEventListener('click', connectWallet);
     </script>
+
 </body>
 </html>
