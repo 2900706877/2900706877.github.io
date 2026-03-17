@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>畅所欲言 - Web3去中心化论坛 (Rollup版)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>畅所欲言 - Web3去中心化论坛</title>
+    <link rel="icon" href="data:,"> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* CSS 保持不变 */
         :root {
             --primary: #4F46E5;
             --primary-hover: #4338CA;
@@ -121,7 +120,7 @@
         <div class="nav-container">
             <div class="brand">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
-                畅所欲言 (Rollup版)
+                畅所欲言
             </div>
             <div id="wallet-status">
                 <span id="wallet-address"></span>
@@ -159,11 +158,11 @@
         <main class="main-feed">
             <div class="card" style="border: 2px dashed var(--primary); background: rgba(79, 70, 229, 0.05);">
                 <div class="card-header" style="color: var(--primary); border-bottom: 1px dashed rgba(79, 70, 229, 0.3);">
-                    ⚙️ 节点 Relayer 打包控制台
+                    ⚙️ 打包控制台
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <p>本地内存池待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
+                        <p>待打包操作: <strong id="mempool-count" style="font-size: 1.5rem; color: var(--primary);">0</strong> 条</p>
                         <p style="font-size: 0.85rem; color: var(--text-muted);">实际项目中，此操作由后端服务器定时自动触发执行上链</p>
                     </div>
                     <button id="batch-submit-btn" class="btn btn-primary" onclick="submitBatchToChain()">执行打包上链 (需付Gas)</button>
@@ -173,7 +172,7 @@
             <div class="card">
                 <div class="card-header">
                     <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    发布动态 (无Gas签名)
+                    发布动态
                 </div>
                 <div class="form-group">
                     <select id="post-section" class="modern-input">
@@ -198,13 +197,22 @@
                     <img id="image-preview" alt="图片预览" style="display: none;">
                     <div id="text-preview" style="display: none; margin-top: 12px; padding: 16px; background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
                 </div>
-                <button onclick="createPost()" class="btn btn-primary">签名并发布 (零Gas费)</button>
+                <button onclick="createPost()" class="btn btn-primary">签名并发布</button>
             </div>
     
             <div class="feed-tools">
                 <div class="search-box">
                     <input type="text" id="search-input" class="modern-input" placeholder="搜索帖子标题或内容...">
                     <button class="btn btn-primary" onclick="renderApp()">搜索</button>
+                    <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+                </div>
+                <div class="sort-controls">
+                    <select id="sort-by" onchange="renderApp()">
+                        <option value="time-desc">最新发布优先</option>
+                        <option value="time-asc">最早发布优先</option>
+                        <option value="likes-desc">点赞数最多优先</option>
+                        <option value="likes-asc">点赞数最少优先</option>
+                    </select>
                 </div>
             </div>
     
@@ -216,7 +224,7 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@4.10.0/dist/web3.min.js"></script>
     <script src="ipfs.js"></script>
     <script>
-        // 【重要】记得确认这里是你新部署的 Rollup 合约地址
+        // 【重要】替换为你部署的 ForumRollup 合约地址
         const contractAddress = "0x06cc0f99b580E6dbB3266Fb6E8035994Ae6483a7"; 
         
         const abi = [
@@ -226,12 +234,13 @@
             {"inputs":[],"name":"packetCounter","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
             {"inputs":[{"internalType":"string","name":"_cid","type":"string"},{"internalType":"bytes32","name":"_rootHash","type":"bytes32"},{"internalType":"uint256","name":"_operationCount","type":"uint256"}],"name":"submitBatch","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
-    
+
         let web3, contract, accounts;
         
-        // 核心状态机
+        // 核心状态机与新增的过滤状态
         let appState = { sections: [], posts: [], comments: [], likes: {} };
         let mempool = []; 
+        let currentSectionFilter = ''; // 用于记录当前选中的分区ID
 
         function generateId() { return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 10000); }
         function shortenAddress(address) { return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : ''; }
@@ -265,9 +274,9 @@
             }, 3000);
         }
 
-        // --- 2. 状态重构（已解决神秘消失的核心逻辑） ---
+        // --- 2. 状态重构 ---
         function applyOperationToState(state, op) {
-            if (!op || !op.type || !op.data) return; // 容错
+            if (!op || !op.type || !op.data) return; 
             if (op.type === 'create_section') {
                 if (!state.sections.find(s => s.id === op.data.id)) state.sections.push(op.data);
             } else if (op.type === 'create_post') {
@@ -285,7 +294,6 @@
             if (!contract) return;
             showStatus('正在从区块链与 IPFS 同步数据...', 'success');
             
-            // 使用临时状态，防止同步期间清空页面
             let newState = { sections: [], posts: [], comments: [], likes: {} };
             
             try {
@@ -297,24 +305,13 @@
 
                     try {
                         const contentStr = await ipfsIntegration.getContent(cid);
-                        
-                        // 【核心修复 1】：拦截 IPFS 未同步时的 Mock 数据，防止破坏 JSON.parse
-                        if (contentStr.startsWith('Mock content')) {
-                            console.warn(`CID ${cid} 尚未在 IPFS 网络中就绪，请稍后刷新重试。`);
-                            continue;
-                        }
+                        if (contentStr.startsWith('Mock content')) continue;
 
                         let parsed;
                         try {
                             parsed = JSON.parse(contentStr);
-                            // 【核心修复 2】：解决 Pinata API 造成的“双重字符串化”问题
-                            if (typeof parsed === 'string') {
-                                parsed = JSON.parse(parsed);
-                            }
-                        } catch (e) {
-                            console.warn(`解析 CID ${cid} JSON 数据失败:`, e);
-                            continue;
-                        }
+                            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                        } catch (e) { continue; }
                         
                         const operations = parsed.data || [];
                         for (const op of operations) {
@@ -336,30 +333,31 @@
 
         // --- 3. 业务操作 ---
         async function signAndAddToMempool(type, data) {
-            if (!accounts) { showStatus('请先连接钱包', 'error'); throw new Error('No wallet'); }
-            
+            if (!accounts || !accounts[0]) { 
+                showStatus('请先连接钱包', 'error'); 
+                throw new Error('未连接钱包'); 
+            }
             const message = JSON.stringify(data);
             showStatus('请在钱包中签名确认 (免费)...', 'success');
             
             try {
                 const signature = await web3.eth.personal.sign(message, accounts[0], '');
-                
                 mempool.push({ type, data, signature });
                 
                 document.getElementById('mempool-count').textContent = mempool.length;
                 showStatus('操作已记录，等待打包上链', 'success');
                 renderApp(); 
-                
             } catch (error) {
-                showStatus('用户取消了签名', 'error');
+                showStatus('签名已取消或失败', 'error');
                 throw error;
             }
         }
 
-        async function createSection() {
-            const name = document.getElementById('section-name').value;
-            const desc = document.getElementById('section-description').value;
-            if (!name || !desc) { showStatus('请填写完整', 'error'); return; }
+        window.createSection = async function() {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
+            const name = document.getElementById('section-name').value.trim();
+            const desc = document.getElementById('section-description').value.trim();
+            if (!name || !desc) { showStatus('请填写完整的分区信息', 'error'); return; }
             
             const data = { id: generateId(), name, description: desc, creator: accounts[0] };
             await signAndAddToMempool('create_section', data);
@@ -368,13 +366,14 @@
             document.getElementById('section-description').value = '';
         }
 
-        async function createPost() {
+        window.createPost = async function() {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
             const sectionId = document.getElementById('post-section').value;
-            const title = document.getElementById('post-title').value;
-            const content = document.getElementById('post-content').value;
+            const title = document.getElementById('post-title').value.trim();
+            const content = document.getElementById('post-content').value.trim();
             const imageFile = document.getElementById('post-image').files[0];
             
-            if (!sectionId || !title || !content) { showStatus('请填写完整的帖子信息', 'error'); return; }
+            if (!sectionId || !title || !content) { showStatus('请选择分区并填写完整标题和内容', 'error'); return; }
             
             let imageCid = '', fileName = '';
             if (imageFile) {
@@ -383,11 +382,7 @@
                 fileName = imageFile.name;
             }
 
-            const data = {
-                id: generateId(), author: accounts[0], title, content, 
-                timestamp: Date.now(), sectionId, imageCid, fileName
-            };
-            
+            const data = { id: generateId(), author: accounts[0], title, content, timestamp: Date.now(), sectionId, imageCid, fileName };
             await signAndAddToMempool('create_post', data);
             
             document.getElementById('post-title').value = '';
@@ -395,25 +390,36 @@
             document.getElementById('post-image').value = '';
             document.getElementById('file-name').textContent = '';
             document.getElementById('image-preview').style.display = 'none';
+            document.getElementById('text-preview').style.display = 'none';
         }
 
-        async function createComment(postId) {
+        // 修复加强版：评论功能
+        window.createComment = async function(postId) {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
+            
             const contentBox = document.getElementById(`comment-content-${postId}`);
-            const content = contentBox.value;
-            if (!content) { showStatus('评论不能为空', 'error'); return; }
+            const content = contentBox.value.trim(); // 防止只输入空格
+            
+            if (!content) { showStatus('评论内容不能为空', 'error'); return; }
 
             const data = { id: generateId(), postId, author: accounts[0], content, timestamp: Date.now() };
-            await signAndAddToMempool('create_comment', data);
-            contentBox.value = '';
+            
+            try {
+                await signAndAddToMempool('create_comment', data);
+                contentBox.value = ''; // 发送成功后清空输入框
+            } catch (error) {
+                console.error('评论失败:', error);
+            }
         }
 
-        async function likeEntity(targetId) {
+        window.likeEntity = async function(targetId) {
+            if (!accounts || !accounts[0]) { showStatus('请先连接钱包', 'error'); return; }
             const data = { targetId, user: accounts[0], timestamp: Date.now() };
             await signAndAddToMempool('like', data);
         }
 
         // --- 4. Relayer 打包上链 ---
-        async function submitBatchToChain() {
+        window.submitBatchToChain = async function() {
             if (mempool.length === 0) { showStatus('内存池为空，没有需要打包的数据', 'error'); return; }
             if (!contract) { showStatus('请连接钱包', 'error'); return; }
 
@@ -422,9 +428,6 @@
                 const batchData = [...mempool]; 
                 
                 const packet = await ipfsIntegration.createDataPacket(batchData);
-                
-                // 【核心修复 3】：手动将数据结构写入本地内存缓存
-                // 防止打包完毕后，页面立即调用 syncStateFromChain，遭遇 Pinata 延迟而导致数据消失
                 const packetObj = { timestamp: Date.now(), data: batchData, version: '1.0' };
                 ipfsIntegration.lightStorage.store(packet.cid, JSON.stringify(packetObj));
 
@@ -442,41 +445,106 @@
             }
         }
 
-        // --- 5. 前端视图渲染 ---
-        function renderApp() {
+        // --- 5. 辅助功能 (评论显隐、清理搜索、过滤分区) ---
+        window.toggleCommentForm = function(postId) {
+            const form = document.getElementById(`comment-form-${postId}`);
+            if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.filterBySection = function(sectionId) {
+            currentSectionFilter = sectionId;
+            renderApp();
+        };
+
+        window.clearSearch = function() {
+            document.getElementById('search-input').value = '';
+            renderApp();
+        };
+
+        // --- 6. 前端视图渲染 ---
+        window.renderApp = function() {
             let currentState = JSON.parse(JSON.stringify(appState)); 
             for (const op of mempool) { applyOperationToState(currentState, op); }
 
+            // 渲染左侧分区 (包含“全部分区”选项)
             const sectionList = document.getElementById('section-list');
             const postSectionSelect = document.getElementById('post-section');
-            sectionList.innerHTML = '';
-            postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
+            if(sectionList) sectionList.innerHTML = '';
+            if(postSectionSelect) postSectionSelect.innerHTML = '<option value="">请选择发帖分区...</option>';
             
-            currentState.sections.forEach(sec => {
+            const isAllActive = currentSectionFilter === '' ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
+            if(sectionList) {
                 sectionList.innerHTML += `
-                    <div class="section-item">
-                        <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
-                        <div class="section-details"><h4>${sec.name}</h4><p>${sec.description}</p></div>
+                    <div class="section-item" ${isAllActive} onclick="filterBySection('')">
+                        <div class="section-icon">🌐</div>
+                        <div class="section-details"><h4>全部分区</h4><p>查看所有星球的电波</p></div>
                     </div>`;
-                postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
+            }
+
+            currentState.sections.forEach(sec => {
+                const isActive = currentSectionFilter === sec.id ? 'style="border-color: var(--primary); background: #F8FAFC;"' : '';
+                if(sectionList) {
+                    sectionList.innerHTML += `
+                        <div class="section-item" ${isActive} onclick="filterBySection('${sec.id}')">
+                            <div class="section-icon">${sec.name.substring(0,1).toUpperCase()}</div>
+                            <div class="section-details"><h4>${sec.name}</h4><p>${sec.description}</p></div>
+                        </div>`;
+                }
+                if(postSectionSelect) {
+                    postSectionSelect.innerHTML += `<option value="${sec.id}">${sec.name}</option>`;
+                }
             });
 
+            // 获取过滤和排序设置
+            let filteredPosts = currentState.posts;
+
+            // 1. 执行分区过滤
+            if (currentSectionFilter !== '') {
+                filteredPosts = filteredPosts.filter(p => p.sectionId === currentSectionFilter);
+            }
+
+            // 2. 执行关键词过滤
+            const searchInput = document.getElementById('search-input');
+            const keyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            if (keyword) {
+                filteredPosts = filteredPosts.filter(post => 
+                    post.title.toLowerCase().includes(keyword) || post.content.toLowerCase().includes(keyword)
+                );
+            }
+
+            // 3. 执行排序
+            const sortByElement = document.getElementById('sort-by');
+            const sortBy = sortByElement ? sortByElement.value : 'time-desc';
+            filteredPosts.sort((a, b) => {
+                const likesA = currentState.likes[a.id] ? currentState.likes[a.id].length : 0;
+                const likesB = currentState.likes[b.id] ? currentState.likes[b.id].length : 0;
+                switch (sortBy) {
+                    case 'time-desc': return b.timestamp - a.timestamp;
+                    case 'time-asc': return a.timestamp - b.timestamp;
+                    case 'likes-desc': return likesB - likesA;
+                    case 'likes-asc': return likesA - likesB;
+                    default: return b.timestamp - a.timestamp;
+                }
+            });
+
+            // 渲染帖子列表
             const postList = document.getElementById('post-list');
+            if(!postList) return;
             postList.innerHTML = '';
-            const keyword = document.getElementById('search-input').value.toLowerCase();
             
-            const sortedPosts = currentState.posts.sort((a, b) => b.timestamp - a.timestamp);
-            
-            sortedPosts.forEach(post => {
-                if (keyword && !post.title.toLowerCase().includes(keyword) && !post.content.toLowerCase().includes(keyword)) return;
-                
+            if (filteredPosts.length === 0) {
+                postList.innerHTML = '<div class="card" style="text-align: center; color: #999; padding: 40px;">这片宇宙空空如也，发布第一条动态吧</div>';
+                return;
+            }
+
+            filteredPosts.forEach(post => {
                 const section = currentState.sections.find(s => s.id === post.sectionId);
                 const sectionName = section ? section.name : '未知分区';
                 const likesCount = currentState.likes[post.id] ? currentState.likes[post.id].length : 0;
                 
                 let attachmentHtml = '';
                 if (post.imageCid) {
-                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg'));
+                    const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     if (isImage) {
                         attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
                     } else {
@@ -487,6 +555,9 @@
                             </div>`;
                     }
                 }
+
+                // 计算当前帖子的评论
+                const postComments = currentState.comments.filter(c => c.postId === post.id).sort((a, b) => a.timestamp - b.timestamp);
 
                 const postHtml = `
                     <div class="post">
@@ -507,9 +578,9 @@
                                 <svg viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
                                 <span>点赞 (${likesCount})</span>
                             </button>
-                            <button class="action-btn" onclick="document.getElementById('comment-form-${post.id}').style.display='block'">
+                            <button class="action-btn" onclick="toggleCommentForm('${post.id}')">
                                 <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" fill="none"></path></svg>
-                                <span>评论</span>
+                                <span>评论 (${postComments.length})</span>
                             </button>
                         </div>
                         
@@ -519,7 +590,7 @@
                         </div>
                         
                         <div class="comments-list">
-                            ${currentState.comments.filter(c => c.postId === post.id).sort((a, b) => a.timestamp - b.timestamp).map(c => `
+                            ${postComments.map(c => `
                                 <div class="comment-item">
                                     <div class="comment-avatar">${c.author.substring(2,4).toUpperCase()}</div>
                                     <div class="comment-body">
@@ -542,30 +613,35 @@
             });
         }
 
-        function previewFile(input) {
+        window.previewFile = function(input) {
             const fileName = document.getElementById('file-name');
             const imagePreview = document.getElementById('image-preview');
             const textPreview = document.getElementById('text-preview');
             
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg');
+                const isImage = file.type.match('image/jpeg') || file.type.match('image/jpg') || file.type.match('image/png');
                 const isText = file.type.match('text/plain') || file.name.endsWith('.txt');
-                fileName.textContent = file.name;
+                if(fileName) fileName.textContent = file.name;
                 
                 if (isImage) {
                     const reader = new FileReader();
-                    reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; textPreview.style.display = 'none'; };
+                    reader.onload = (e) => { 
+                        if(imagePreview) { imagePreview.src = e.target.result; imagePreview.style.display = 'block'; }
+                        if(textPreview) textPreview.style.display = 'none'; 
+                    };
                     reader.readAsDataURL(file);
                 } else if (isText) {
-                    file.text().then(text => { textPreview.textContent = text; textPreview.style.display = 'block'; imagePreview.style.display = 'none'; });
+                    file.text().then(text => { 
+                        if(textPreview) { textPreview.textContent = text; textPreview.style.display = 'block'; }
+                        if(imagePreview) imagePreview.style.display = 'none'; 
+                    });
                 }
             }
         }
 
         window.onload = async function() {
             try { await ipfsIntegration.init(); } catch (e) {}
-            // 如果钱包已授权，尝试自动连接
             if (window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -575,7 +651,10 @@
                 window.ethereum.on('chainChanged', () => window.location.reload());
             }
         };
-        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+        
+        const connectWalletBtn = document.getElementById('connect-wallet');
+        if(connectWalletBtn) connectWalletBtn.addEventListener('click', connectWallet);
     </script>
+
 </body>
 </html>
