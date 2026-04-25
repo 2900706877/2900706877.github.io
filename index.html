@@ -566,7 +566,7 @@
                     const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     const isText = post.fileName && post.fileName.endsWith('.txt');
                     if (isImage) {
-                        attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
+                        attachmentHtml = `<img src="https://lavender-patient-canidae-805.mypinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
                     } else if (isText) {
                         attachmentHtml = `
                             <div class="attachment-box">
@@ -661,7 +661,7 @@
         window.downloadFile = async function(cid, fileName) {
             try {
                 showStatus('正在准备下载...', 'success');
-                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+                const url = `https://lavender-patient-canidae-805.mypinata.cloud/ipfs/${cid}`;
                 
                 const response = await fetch(url, { method: 'GET', mode: 'cors' });
                 if (response.ok) {
@@ -678,7 +678,7 @@
                     return;
                 }
             } catch (error) {
-                window.open(`https://gateway.pinata.cloud/ipfs/${cid}`, '_blank');
+                window.open(`https://lavender-patient-canidae-805.mypinata.cloud/ipfs/${cid}`, '_blank');
             }
         };
 

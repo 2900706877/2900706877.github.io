@@ -179,7 +179,7 @@ class IPFSIntegration {
             
             // 尝试从IPFS网关获取内容
             try {
-                const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+                const gatewayUrl = `https://lavender-patient-canidae-805.mypinata.cloud/ipfs/${cid}`;
                 const response = await fetch(gatewayUrl);
                 
                 if (response.ok) {
