@@ -251,7 +251,7 @@
                 accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 web3 = new Web3(window.ethereum);
                 contract = new web3.eth.Contract(abi, contractAddress);
-                document.getElementById('wallet-address').textContent = shortenAddress(accounts[0]);
+                document.getElementById('wallet-address').textContent = accounts[0];
                 document.getElementById('connect-wallet').style.display = 'none';
                 showStatus('钱包连接成功', 'success');
                 
@@ -589,7 +589,7 @@
                         <div class="post-header">
                             <div class="post-avatar">${post.author.substring(2,4).toUpperCase()}</div>
                             <div class="post-meta-info">
-                                <span class="post-author">${shortenAddress(post.author)}</span>
+                                <span class="post-author">${post.author}</span>
                                 <span class="post-time">${new Date(post.timestamp).toLocaleString()}</span>
                             </div>
                             <span class="badge-section">${sectionName}</span>
@@ -620,7 +620,7 @@
                                     <div class="comment-avatar">${c.author.substring(2,4).toUpperCase()}</div>
                                     <div class="comment-body">
                                         <div class="comment-header">
-                                            <span class="comment-author">${shortenAddress(c.author)}</span>
+                                            <span class="comment-author">${c.author}</span>
                                             <span class="comment-time">${new Date(c.timestamp).toLocaleString()}</span>
                                         </div>
                                         <div class="comment-text">${c.content}</div>
