@@ -242,6 +242,7 @@
         let currentSectionFilter = ''; // 用于记录当前选中的分区ID
 
         function generateId() { return 'id_' + Date.now() + '_' + Math.floor(Math.random() * 10000); }
+        function shortenAddress(address) { return address ? address.substring(0, 6) + '...' + address.substring(address.length - 4) : ''; }
 
         // --- 1. 钱包连接 ---
         async function connectWallet() {
@@ -566,7 +567,7 @@
                     const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     const isText = post.fileName && post.fileName.endsWith('.txt');
                     if (isImage) {
-                        attachmentHtml = `<img src="https://lavender-patient-canidae-805.mypinata.cloud/${post.imageCid}" class="post-image">`;
+                        attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
                     } else if (isText) {
                         attachmentHtml = `
                             <div class="attachment-box">
@@ -661,7 +662,7 @@
         window.downloadFile = async function(cid, fileName) {
             try {
                 showStatus('正在准备下载...', 'success');
-                const url = `https://lavender-patient-canidae-805.mypinata.cloud/${cid}`;
+                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
                 
                 const response = await fetch(url, { method: 'GET', mode: 'cors' });
                 if (response.ok) {
@@ -678,7 +679,7 @@
                     return;
                 }
             } catch (error) {
-                window.open(`https://lavender-patient-canidae-805.mypinata.cloud/${cid}`, '_blank');
+                window.open(`https://gateway.pinata.cloud/ipfs/${cid}`, '_blank');
             }
         };
 
