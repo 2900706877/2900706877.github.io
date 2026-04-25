@@ -177,33 +177,47 @@ class IPFSIntegration {
                 return this.lightStorage.get(cid);
             }
             
+            // 多个公共IPFS网关作为备选
+            const gateways = [
+                'https://gateway.pinata.cloud/ipfs/',
+                'https://ipfs.io/ipfs/',
+                'https://cloudflare-ipfs.com/ipfs/',
+                'https://dweb.link/ipfs/'
+            ];
+            
             // 尝试从IPFS网关获取内容
-            try {
-                const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
-                const response = await fetch(gatewayUrl);
-                
-                if (response.ok) {
-                    const content = await response.text();
-                    console.log('从IPFS获取内容成功，CID:', cid);
-                    // 存储到轻节点存储
-                    this.lightStorage.store(cid, content);
-                    return content;
-                } else {
-                    // 如果获取失败，返回模拟数据
-                    console.warn('从IPFS获取内容失败，使用模拟数据');
-                    const mockContent = 'Mock content for CID: ' + cid;
-                    // 存储到轻节点存储
-                    this.lightStorage.store(cid, mockContent);
-                    return mockContent;
+            let content = null;
+            let lastError = null;
+            
+            for (const gatewayUrl of gateways) {
+                try {
+                    console.log('尝试从网关获取内容:', gatewayUrl + cid);
+                    const response = await fetch(gatewayUrl + cid, {
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        content = await response.text();
+                        console.log('从IPFS获取内容成功，CID:', cid, '网关:', gatewayUrl);
+                        this.lightStorage.store(cid, content);
+                        return content;
+                    } else {
+                        console.warn('网关', gatewayUrl, '返回状态:', response.status, '跳过');
+                        lastError = new Error(`Gateway ${gatewayUrl} returned ${response.status}`);
+                        continue;
+                    }
+                } catch (apiError) {
+                    console.warn('网关', gatewayUrl, '调用失败:', apiError.message, '跳过');
+                    lastError = apiError;
+                    continue;
                 }
-            } catch (apiError) {
-                // 如果API调用失败，返回模拟数据
-                console.warn('IPFS网关调用失败，使用模拟数据:', apiError.message);
-                const mockContent = 'Mock content for CID: ' + cid;
-                // 存储到轻节点存储
-                this.lightStorage.store(cid, mockContent);
-                return mockContent;
             }
+            
+            // 所有网关都失败，返回模拟数据
+            console.warn('所有IPFS网关都失败，使用模拟数据，CID:', cid, '错误:', lastError?.message);
+            const mockContent = 'Mock content for CID: ' + cid;
+            this.lightStorage.store(cid, mockContent);
+            return mockContent;
         } catch (error) {
             console.error('从IPFS获取内容失败:', error);
             throw error;
