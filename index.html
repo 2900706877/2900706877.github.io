@@ -662,15 +662,37 @@
         window.downloadFile = async function(cid, fileName) {
             try {
                 showStatus('正在准备下载...', 'success');
-                const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
                 
-                const response = await fetch(url, { method: 'GET', mode: 'cors' });
-                if (response.ok) {
-                    const blob = await response.blob();
+                // 尝试使用多个网关
+                const gateways = [
+                    'https://ipfs.io/ipfs/',
+                    'https://cloudflare-ipfs.com/ipfs/',
+                    'https://dweb.link/ipfs/',
+                    'https://gateway.pinata.cloud/ipfs/'
+                ];
+                
+                let blob = null;
+                
+                for (const gatewayUrl of gateways) {
+                    try {
+                        const url = gatewayUrl + cid;
+                        const response = await fetch(url, { method: 'GET', mode: 'cors' });
+                        if (response.ok) {
+                            blob = await response.blob();
+                            break;
+                        }
+                    } catch (e) {
+                        console.warn('网关', gatewayUrl, '下载失败:', e.message);
+                        continue;
+                    }
+                }
+                
+                if (blob) {
                     const downloadUrl = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = downloadUrl;
                     link.download = fileName || 'download.txt';
+                    link.type = 'application/octet-stream'; // 强制下载
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -678,8 +700,21 @@
                     showStatus('下载已开始', 'success');
                     return;
                 }
+                
+                // 如果所有网关都失败，尝试使用替代方法
+                console.warn('所有网关下载失败，使用替代方法');
+                const fallbackUrl = `https://ipfs.io/ipfs/${cid}`;
+                const link = document.createElement('a');
+                link.href = fallbackUrl;
+                link.download = fileName || 'download.txt';
+                link.target = '_self'; // 在当前窗口打开
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showStatus('下载已开始', 'success');
             } catch (error) {
-                window.open(`https://gateway.pinata.cloud/ipfs/${cid}`, '_blank');
+                console.error('下载失败:', error);
+                showStatus('下载失败，请稍后重试', 'error');
             }
         };
 
