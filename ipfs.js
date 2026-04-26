@@ -179,6 +179,7 @@ class IPFSIntegration {
             
             // 多个公共IPFS网关作为备选
             const gateways = [
+                'https://lavender-patient-canidae-805.mypinata.cloud/ipfs/',
                 'https://gateway.pinata.cloud/ipfs/',
                 'https://ipfs.io/ipfs/',
                 'https://cloudflare-ipfs.com/ipfs/',
