@@ -567,7 +567,7 @@
                     const isImage = post.fileName && (post.fileName.endsWith('.jpg') || post.fileName.endsWith('.jpeg') || post.fileName.endsWith('.png'));
                     const isText = post.fileName && post.fileName.endsWith('.txt');
                     if (isImage) {
-                        attachmentHtml = `<img src="https://gateway.pinata.cloud/ipfs/${post.imageCid}" class="post-image">`;
+                        attachmentHtml = `<img src="https://ipfs.io/ipfs/${post.imageCid}" class="post-image">`;
                     } else if (isText) {
                         attachmentHtml = `
                             <div class="attachment-box">
